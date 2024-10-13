@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge';
 
 export default function Hero() {
   return (
-    <div className=":flex mx-auto mt-44 flex max-w-screen-2xl items-center justify-center gap-12 overflow-hidden sm:px-12 md:px-8">
+    <div className="mx-auto mt-44 flex flex-col items-center justify-center gap-6 px-10 md:flex-row md:gap-8 lg:gap-10 xl:gap-12">
+      {' '}
       <div className="max-w-2xl flex-none space-y-5">
         <Link
           href="/services"
