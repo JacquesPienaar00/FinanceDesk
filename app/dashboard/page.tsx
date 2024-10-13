@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -43,8 +43,8 @@ import {
 import Forms from '@/app/dashboard/components/FormIndex';
 import { ModeToggle } from '@/components/ModeToggle';
 import { SupportContent } from './components/support-content';
-
 import UserSettings from './components/user-profile';
+import { Notifications } from './components/notifications';
 
 interface Service {
   id: string;
@@ -56,9 +56,8 @@ export default function DashboardSidebar() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isWiderSidebar, setIsWiderSidebar] = useState(false);
   const [activeContent, setActiveContent] = useState<React.ReactNode | null>(null);
- 
+
   const { data: session } = useSession();
- 
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
@@ -78,7 +77,7 @@ export default function DashboardSidebar() {
     {
       name: 'Dashboard',
       icon: LayoutDashboard,
-      content: <div></div>,
+      content: <div>Dashboard Content</div>,
     },
     { name: 'Support', icon: Users, content: <SupportContent /> },
     {
@@ -247,6 +246,7 @@ export default function DashboardSidebar() {
                 className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
               />
             </div>
+            <Notifications />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="overflow-hidden rounded-full">
