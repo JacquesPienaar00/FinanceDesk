@@ -1,0 +1,52 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                        String                     @id @default(auto()) @map("_id") @db.ObjectId
+  name                      String?
+  email                     String?                    @unique
+  emailVerified             Boolean?
+  image                     String?
+  hashedPassword            String?
+  resetToken                String?
+  resetTokenExpiry          DateTime?
+  role                      Role                       @default(user)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  accounts                  Account[]
+  pfData                    Json?
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.String
+  access_token      String? @db.String
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.String
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String  @db.ObjectId
+
+  @@unique([provider, providerAccountId])
+}
+
+
+enum Role {
+  user
+  admin
+}
