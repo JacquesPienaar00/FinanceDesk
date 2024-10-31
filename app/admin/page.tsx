@@ -47,6 +47,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { FormSubmissionsView } from './components/FormSubmissions';
 import AdminChatLogs from './components/admin-chat-logs';
 import Usermanagement from './components/user-management';
+import AdminBotResponses from './components/bot-responses';
 
 const useAdminRoute = (redirectTo = '/auth') => {
   const { data: session, status } = useSession();
@@ -84,7 +85,7 @@ const navItems = [
     ),
   },
   { name: 'User Management', icon: Users, content: <Usermanagement /> },
-  { name: 'System Settings', icon: Settings, content: <div>System Settings Content</div> },
+  { name: 'System Settings', icon: Settings, content: <AdminBotResponses /> },
   { name: 'Chat', icon: MessageCircleMore, content: <AdminChatLogs /> },
   {
     name: 'Form Submissions',
@@ -337,14 +338,6 @@ export default function AdminDashboard() {
           </header>
           <main className="flex-1 overflow-auto px-6">
             <div className="mx-auto mt-12 md:mt-0">
-              <Alert variant="destructive" className="mb-4">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Warning</AlertTitle>
-                <AlertDescription>
-                  You are accessing an admin dashboard. Exercise caution and ensure you have the
-                  necessary permissions.
-                </AlertDescription>
-              </Alert>
               {activeContent ? (
                 Array.isArray(activeContent) ? (
                   <div className="">{activeContent}</div>

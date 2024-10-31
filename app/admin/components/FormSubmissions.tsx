@@ -265,7 +265,7 @@ export function FormSubmissionsView() {
   }
 
   return (
-    <div className="w-full overflow-hidden">
+    <div className="h-full overflow-hidden">
       <h1 className="mb-4 text-2xl font-bold">Form Submissions</h1>
 
       <div className="mb-4 md:hidden">
@@ -311,7 +311,7 @@ export function FormSubmissionsView() {
       </div>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="h-[85vh] pt-6">
           <div className="mb-4 flex flex-col items-start justify-between space-y-4 md:flex-row md:items-center md:space-y-0">
             <div className="flex w-full items-center md:w-auto">
               <Input

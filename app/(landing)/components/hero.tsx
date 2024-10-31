@@ -29,14 +29,18 @@ export default function Hero() {
           growing your business.
         </p>
         <div className="flex items-center gap-x-3 sm:text-sm">
-          <Button size="lg" className="rounded-full">
-            Get started
-            <ChevronRight className="ml-1 h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="lg" className="rounded-full">
-            Contact sales
-            <ChevronRight className="ml-1 h-5 w-5" />
-          </Button>
+          <Link href="/auth">
+            <Button size="lg" className="rounded-full">
+              Get started
+              <ChevronRight className="ml-1 h-5 w-5" />
+            </Button>
+          </Link>
+          <Link href="/contact">
+            <Button variant="ghost" size="lg" className="rounded-full">
+              Contact Us
+              <ChevronRight className="ml-1 h-5 w-5" />
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="hidden xl:block">

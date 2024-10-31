@@ -1,60 +1,49 @@
-"use client";
+'use client';
 
-import { useForm, SubmitHandler, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
-import { FormWrapper } from "@/app/dashboard/forms/components/FormWrapper";
-import { useFormSubmission } from "@/app/dashboard/hooks/useFormSubmmisions";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { FormWrapper } from '@/app/dashboard/forms/components/FormWrapper';
+import { useFormSubmission } from '@/app/dashboard/forms/hooks/useFormSubmmisions';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 
 const formSchema = z.object({
-  natureOfIndustry: z.string().min(1, "Nature of industry is required"),
-  contactInfo: z.string().min(1, "Contact information is required"),
-  registrationTypes: z
-    .array(z.enum(["PAYE", "SDL", "UIF"]))
-    .refine((value) => value.length > 0, {
-      message: "At least one registration type must be selected",
-    }),
+  natureOfIndustry: z.string().min(1, 'Nature of industry is required'),
+  contactInfo: z.string().min(1, 'Contact information is required'),
+  registrationTypes: z.array(z.enum(['PAYE', 'SDL', 'UIF'])).refine((value) => value.length > 0, {
+    message: 'At least one registration type must be selected',
+  }),
   desiredRegistrationDate: z.date({
-    required_error: "Desired registration date is required",
+    required_error: 'Desired registration date is required',
     invalid_type_error: "That's not a valid date",
   }),
-  sarsEfilingUsername: z.string().min(1, "SARS eFiling username is required"),
-  sarsPassword: z.string().min(1, "SARS password is required"),
-  exampleAttachment: z.enum(["attach", "doNotHave"]),
+  sarsEfilingUsername: z.string().min(1, 'SARS eFiling username is required'),
+  sarsPassword: z.string().min(1, 'SARS password is required'),
+  exampleAttachment: z.enum(['attach', 'doNotHave']),
   exampleFile: z.any().optional(),
-  registrationMethod: z.enum(["cipcNumber", "uploadDocument"]),
-  cipcNumber: z.string().min(1, "CIPC number is required").optional(),
-  otherRegistrationNumber: z
-    .string()
-    .min(1, "Registration number is required")
-    .optional(),
+  registrationMethod: z.enum(['cipcNumber', 'uploadDocument']),
+  cipcNumber: z.string().min(1, 'CIPC number is required').optional(),
+  otherRegistrationNumber: z.string().min(1, 'Registration number is required').optional(),
   registrationDocument: z.any().optional(),
 });
 
@@ -62,7 +51,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export function SARSPAYESDLRegistrationForm({
   onSubmissionSuccess,
-  collectionName = "sars-paye-sdl-registration",
+  collectionName = 'sars-paye-sdl-registration',
 }: {
   onSubmissionSuccess: () => void;
   collectionName?: string;
@@ -71,7 +60,7 @@ export function SARSPAYESDLRegistrationForm({
   const { data: session } = useSession();
   const router = useRouter();
 
-  const { submitForm, isSubmitting } = useFormSubmission("20", async () => {
+  const { submitForm, isSubmitting } = useFormSubmission('20', async () => {
     onSubmissionSuccess();
   });
 
@@ -85,53 +74,50 @@ export function SARSPAYESDLRegistrationForm({
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      registrationTypes: ["PAYE"],
-      exampleAttachment: "doNotHave",
-      registrationMethod: "cipcNumber",
+      registrationTypes: ['PAYE'],
+      exampleAttachment: 'doNotHave',
+      registrationMethod: 'cipcNumber',
     },
   });
 
-  const registrationMethod = watch("registrationMethod");
-  const exampleAttachment = watch("exampleAttachment");
+  const registrationMethod = watch('registrationMethod');
+  const exampleAttachment = watch('exampleAttachment');
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
       if (!session) {
         toast({
-          title: "Authentication required",
-          description: "Please sign in to submit the form.",
-          variant: "destructive",
+          title: 'Authentication required',
+          description: 'Please sign in to submit the form.',
+          variant: 'destructive',
         });
         return;
       }
 
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (key === "registrationTypes") {
+        if (key === 'registrationTypes') {
           formData.append(key, JSON.stringify(value));
-        } else if (key === "desiredRegistrationDate") {
-          formData.append(key, value ? (value as Date).toISOString() : "");
-        } else if (key !== "exampleFile" && key !== "registrationDocument") {
+        } else if (key === 'desiredRegistrationDate') {
+          formData.append(key, value ? (value as Date).toISOString() : '');
+        } else if (key !== 'exampleFile' && key !== 'registrationDocument') {
           formData.append(key, value as string);
         }
       });
       // Add NextAuth email
       if (session.user?.email) {
-        formData.append("nextauth", session.user.email);
+        formData.append('nextauth', session.user.email);
       }
-      if (data.exampleAttachment === "attach" && data.exampleFile) {
-        formData.append("exampleFile", data.exampleFile[0]);
-      }
-
-      if (
-        data.registrationMethod === "uploadDocument" &&
-        data.registrationDocument
-      ) {
-        formData.append("registrationDocument", data.registrationDocument[0]);
+      if (data.exampleAttachment === 'attach' && data.exampleFile) {
+        formData.append('exampleFile', data.exampleFile[0]);
       }
 
-      formData.append("collectionName", collectionName);
-      formData.append("formId", "20");
+      if (data.registrationMethod === 'uploadDocument' && data.registrationDocument) {
+        formData.append('registrationDocument', data.registrationDocument[0]);
+      }
+
+      formData.append('collectionName', collectionName);
+      formData.append('formId', '20');
 
       const success = await submitForm(formData);
 
@@ -139,14 +125,14 @@ export function SARSPAYESDLRegistrationForm({
         router.refresh();
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error('Error submitting form:', error);
       toast({
-        title: "Error",
+        title: 'Error',
         description:
           error instanceof Error
             ? error.message
-            : "There was a problem submitting your form. Please try again.",
-        variant: "destructive",
+            : 'There was a problem submitting your form. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -166,26 +152,22 @@ export function SARSPAYESDLRegistrationForm({
               <Label htmlFor="natureOfIndustry">Nature of Industry</Label>
               <Textarea
                 id="natureOfIndustry"
-                {...register("natureOfIndustry")}
-                className={errors.natureOfIndustry ? "border-red-500" : ""}
+                {...register('natureOfIndustry')}
+                className={errors.natureOfIndustry ? 'border-red-500' : ''}
               />
               {errors.natureOfIndustry && (
-                <p className="text-red-500 text-sm">
-                  {errors.natureOfIndustry.message}
-                </p>
+                <p className="text-sm text-red-500">{errors.natureOfIndustry.message}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="contactInfo">Contact Information</Label>
               <Textarea
                 id="contactInfo"
-                {...register("contactInfo")}
-                className={errors.contactInfo ? "border-red-500" : ""}
+                {...register('contactInfo')}
+                className={errors.contactInfo ? 'border-red-500' : ''}
               />
               {errors.contactInfo && (
-                <p className="text-red-500 text-sm">
-                  {errors.contactInfo.message}
-                </p>
+                <p className="text-sm text-red-500">{errors.contactInfo.message}</p>
               )}
             </div>
           </CardContent>
@@ -206,11 +188,11 @@ export function SARSPAYESDLRegistrationForm({
                     render={({ field }) => (
                       <Checkbox
                         id="PAYE"
-                        checked={field.value.includes("PAYE")}
+                        checked={field.value.includes('PAYE')}
                         onCheckedChange={(checked) => {
                           const updatedValue = checked
-                            ? [...field.value, "PAYE"]
-                            : field.value.filter((v) => v !== "PAYE");
+                            ? [...field.value, 'PAYE']
+                            : field.value.filter((v) => v !== 'PAYE');
                           field.onChange(updatedValue);
                         }}
                       />
@@ -225,11 +207,11 @@ export function SARSPAYESDLRegistrationForm({
                     render={({ field }) => (
                       <Checkbox
                         id="SDL"
-                        checked={field.value.includes("SDL")}
+                        checked={field.value.includes('SDL')}
                         onCheckedChange={(checked) => {
                           const updatedValue = checked
-                            ? [...field.value, "SDL"]
-                            : field.value.filter((v) => v !== "SDL");
+                            ? [...field.value, 'SDL']
+                            : field.value.filter((v) => v !== 'SDL');
                           field.onChange(updatedValue);
                         }}
                       />
@@ -244,11 +226,11 @@ export function SARSPAYESDLRegistrationForm({
                     render={({ field }) => (
                       <Checkbox
                         id="UIF"
-                        checked={field.value.includes("UIF")}
+                        checked={field.value.includes('UIF')}
                         onCheckedChange={(checked) => {
                           const updatedValue = checked
-                            ? [...field.value, "UIF"]
-                            : field.value.filter((v) => v !== "UIF");
+                            ? [...field.value, 'UIF']
+                            : field.value.filter((v) => v !== 'UIF');
                           field.onChange(updatedValue);
                         }}
                       />
@@ -258,15 +240,11 @@ export function SARSPAYESDLRegistrationForm({
                 </div>
               </div>
               {errors.registrationTypes && (
-                <p className="text-red-500 text-sm">
-                  {errors.registrationTypes.message}
-                </p>
+                <p className="text-sm text-red-500">{errors.registrationTypes.message}</p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="desiredRegistrationDate">
-                Desired Registration Date
-              </Label>
+              <Label htmlFor="desiredRegistrationDate">Desired Registration Date</Label>
               <Controller
                 name="desiredRegistrationDate"
                 control={control}
@@ -274,13 +252,13 @@ export function SARSPAYESDLRegistrationForm({
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
-                        variant={"outline"}
+                        variant={'outline'}
                         className={`w-full justify-start text-left font-normal ${
-                          !field.value && "text-muted-foreground"
+                          !field.value && 'text-muted-foreground'
                         }`}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -288,9 +266,7 @@ export function SARSPAYESDLRegistrationForm({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < new Date()
-                        }
+                        disabled={(date) => date < new Date()}
                         initialFocus
                       />
                     </PopoverContent>
@@ -298,9 +274,7 @@ export function SARSPAYESDLRegistrationForm({
                 )}
               />
               {errors.desiredRegistrationDate && (
-                <p className="text-red-500 text-sm">
-                  {errors.desiredRegistrationDate.message}
-                </p>
+                <p className="text-sm text-red-500">{errors.desiredRegistrationDate.message}</p>
               )}
             </div>
           </CardContent>
@@ -315,13 +289,11 @@ export function SARSPAYESDLRegistrationForm({
               <Label htmlFor="sarsEfilingUsername">SARS eFiling Username</Label>
               <Input
                 id="sarsEfilingUsername"
-                {...register("sarsEfilingUsername")}
-                className={errors.sarsEfilingUsername ? "border-red-500" : ""}
+                {...register('sarsEfilingUsername')}
+                className={errors.sarsEfilingUsername ? 'border-red-500' : ''}
               />
               {errors.sarsEfilingUsername && (
-                <p className="text-red-500 text-sm">
-                  {errors.sarsEfilingUsername.message}
-                </p>
+                <p className="text-sm text-red-500">{errors.sarsEfilingUsername.message}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -329,13 +301,11 @@ export function SARSPAYESDLRegistrationForm({
               <Input
                 id="sarsPassword"
                 type="password"
-                {...register("sarsPassword")}
-                className={errors.sarsPassword ? "border-red-500" : ""}
+                {...register('sarsPassword')}
+                className={errors.sarsPassword ? 'border-red-500' : ''}
               />
               {errors.sarsPassword && (
-                <p className="text-red-500 text-sm">
-                  {errors.sarsPassword.message}
-                </p>
+                <p className="text-sm text-red-500">{errors.sarsPassword.message}</p>
               )}
             </div>
           </CardContent>
@@ -366,17 +336,17 @@ export function SARSPAYESDLRegistrationForm({
                 </RadioGroup>
               )}
             />
-            {exampleAttachment === "attach" && (
+            {exampleAttachment === 'attach' && (
               <div className="space-y-2">
                 <Label htmlFor="exampleFile">Example File</Label>
                 <Input
                   id="exampleFile"
                   type="file"
-                  {...register("exampleFile")}
-                  className={errors.exampleFile ? "border-red-500" : ""}
+                  {...register('exampleFile')}
+                  className={errors.exampleFile ? 'border-red-500' : ''}
                 />
                 {errors.exampleFile && (
-                  <p className="text-red-500 text-sm">
+                  <p className="text-sm text-red-500">
                     {errors.exampleFile.message as React.ReactNode}
                   </p>
                 )}
@@ -405,48 +375,40 @@ export function SARSPAYESDLRegistrationForm({
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="uploadDocument" id="uploadDocument" />
-                    <Label htmlFor="uploadDocument">
-                      Upload Company Registration Documents
-                    </Label>
+                    <Label htmlFor="uploadDocument">Upload Company Registration Documents</Label>
                   </div>
                 </RadioGroup>
               )}
             />
 
-            {registrationMethod === "cipcNumber" && (
+            {registrationMethod === 'cipcNumber' && (
               <div className="space-y-2">
                 <Label htmlFor="cipcNumber">
                   CIPC Number (or other relevant registration number)
                 </Label>
                 <Input
                   id="cipcNumber"
-                  {...register("cipcNumber")}
+                  {...register('cipcNumber')}
                   placeholder="Enter CIPC number or other registration number"
-                  className={errors.cipcNumber ? "border-red-500" : ""}
+                  className={errors.cipcNumber ? 'border-red-500' : ''}
                 />
                 {errors.cipcNumber && (
-                  <p className="text-red-500 text-sm">
-                    {errors.cipcNumber.message}
-                  </p>
+                  <p className="text-sm text-red-500">{errors.cipcNumber.message}</p>
                 )}
               </div>
             )}
 
-            {registrationMethod === "uploadDocument" && (
+            {registrationMethod === 'uploadDocument' && (
               <div className="space-y-2">
-                <Label htmlFor="registrationDocument">
-                  Company Registration Document
-                </Label>
+                <Label htmlFor="registrationDocument">Company Registration Document</Label>
                 <Input
                   id="registrationDocument"
                   type="file"
-                  {...register("registrationDocument")}
-                  className={
-                    errors.registrationDocument ? "border-red-500" : ""
-                  }
+                  {...register('registrationDocument')}
+                  className={errors.registrationDocument ? 'border-red-500' : ''}
                 />
                 {errors.registrationDocument && (
-                  <p className="text-red-500 text-sm">
+                  <p className="text-sm text-red-500">
                     {errors.registrationDocument.message as React.ReactNode}
                   </p>
                 )}
@@ -456,9 +418,7 @@ export function SARSPAYESDLRegistrationForm({
         </Card>
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting
-            ? "Submitting..."
-            : "Submit SARS PAYE / SDL Registration"}
+          {isSubmitting ? 'Submitting...' : 'Submit SARS PAYE / SDL Registration'}
         </Button>
       </form>
     </FormWrapper>

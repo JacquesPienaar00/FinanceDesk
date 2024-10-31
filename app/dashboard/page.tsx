@@ -40,22 +40,17 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import Forms from '@/app/dashboard/components/FormIndex';
-import { ModeToggle } from '@/components/ModeToggle';
+import Forms from '@/app/dashboard/forms/components/FormIndex';
+import { ModeToggle } from '@/components/ui/ModeToggle';
 import { SupportContent } from './components/support-content';
 import UserSettings from './components/user-profile';
 import { Notifications } from './components/notifications';
 
-interface Service {
-  id: string;
-  name: string;
-  formId: string;
-}
-
 export default function DashboardSidebar() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isWiderSidebar, setIsWiderSidebar] = useState(false);
+  const [isWiderSidebar, setIsWiderSidebar] = useState(true);
   const [activeContent, setActiveContent] = useState<React.ReactNode | null>(null);
+  const [activePage, setActivePage] = useState('Dashboard');
 
   const { data: session } = useSession();
 
@@ -88,9 +83,14 @@ export default function DashboardSidebar() {
     { name: 'Settings', icon: Settings, content: <UserSettings /> },
   ];
 
+  const handleNavItemClick = (item: { name: string; content: React.ReactNode }) => {
+    setActiveContent(item.content);
+    setActivePage(item.name);
+  };
+
   const Sidebar = () => (
     <aside
-      className={`fixed inset-y-0 left-0 z-10 flex flex-col border-r bg-background transition-all duration-300 ${isWiderSidebar ? 'w-64' : 'w-14'}`}
+      className={`fixed inset-y-0 left-0 z-10 hidden flex-col border-r bg-background transition-all duration-300 sm:flex ${isWiderSidebar ? 'w-64' : 'w-14'}`}
     >
       <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
         <Link
@@ -107,7 +107,7 @@ export default function DashboardSidebar() {
                 variant="ghost"
                 size={isWiderSidebar ? 'default' : 'icon'}
                 className={`flex justify-center ${isWiderSidebar ? 'flex w-full justify-start px-3' : 'h-9 w-9 md:h-8 md:w-8'}`}
-                onClick={() => setActiveContent(item.content)}
+                onClick={() => handleNavItemClick(item)}
               >
                 <item.icon className={`h-5 w-5 ${isWiderSidebar ? 'mr-2' : ''}`} />
                 {isWiderSidebar && <span>{item.name}</span>}
@@ -118,14 +118,16 @@ export default function DashboardSidebar() {
           </Tooltip>
         ))}
       </nav>
-      <div className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
+      <div
+        className={`mt-auto flex items-center gap-4 px-2 sm:py-5 ${isWiderSidebar ? 'mx-auto' : 'flex-col'}`}
+      >
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
               onClick={() => signOut()}
               variant="ghost"
               size={isWiderSidebar ? 'default' : 'icon'}
-              className={`flex justify-center ${isWiderSidebar ? 'w-full px-3' : 'h-9 w-9 md:h-8 md:w-8'}`}
+              className={`flex justify-center ${isWiderSidebar ? 'px-3' : 'h-9 w-9 md:h-8 md:w-8'}`}
             >
               <LogOut className={`h-4 w-4 ${isWiderSidebar ? 'mr-2' : ''}`} />
               {isWiderSidebar && <span>Log out</span>}
@@ -139,7 +141,7 @@ export default function DashboardSidebar() {
           variant="outline"
           size="icon"
           onClick={() => setIsWiderSidebar((prev) => !prev)}
-          className="mt-4"
+          className=""
         >
           {isWiderSidebar ? (
             <ChevronLeft className="h-4 w-4" />
@@ -173,9 +175,10 @@ export default function DashboardSidebar() {
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
         <Sidebar />
         <div
-          className={`flex flex-col sm:gap-4 sm:py-4 ${isWiderSidebar ? 'sm:pl-64' : 'sm:pl-14'} transition-all duration-300`}
+          className={`flex flex-col sm:gap-4 ${isWiderSidebar ? 'sm:pl-64' : 'sm:pl-14'} transition-all duration-300`}
         >
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+          <header className="shadow-3xl sticky top-0 z-30 flex h-14 w-full items-center gap-4 border-b bg-muted/50 p-3 px-4 backdrop-blur-md">
+            {' '}
             <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="sm:hidden">
@@ -203,7 +206,7 @@ export default function DashboardSidebar() {
                         <Button
                           key={index}
                           onClick={() => {
-                            setActiveContent(item.content);
+                            handleNavItemClick(item);
                             setIsSidebarOpen(false);
                           }}
                           variant="ghost"
@@ -228,13 +231,7 @@ export default function DashboardSidebar() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbLink asChild>
-                    <Link href="#">Services</Link>
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Recent Services</BreadcrumbPage>
+                  <BreadcrumbPage>{activePage}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -243,7 +240,7 @@ export default function DashboardSidebar() {
               <Input
                 type="search"
                 placeholder="Search..."
-                className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
+                className="w-full rounded-lg bg-background pl-8 md:w-[120px] lg:w-[336px]"
               />
             </div>
             <Notifications />

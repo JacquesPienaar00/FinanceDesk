@@ -25,7 +25,7 @@ export default function AboutLanding() {
         initial="hidden"
         animate="visible"
         variants={fadeIn}
-        className="mx-auto mt-52 flex max-w-screen-2xl justify-center px-8 py-20"
+        className="mx-auto mt-52 flex max-w-screen-2xl justify-center px-8"
       >
         <div className="text-center">
           <motion.h2 variants={slideUp} className="mb-12 text-4xl font-extrabold">
@@ -40,13 +40,13 @@ export default function AboutLanding() {
           </motion.p>
           <motion.div
             variants={slideUp}
-            className="relative mx-auto h-64 w-full max-w-2xl overflow-hidden rounded-lg"
+            className="relative mx-auto h-[340px] max-w-2xl rounded-lg md:w-full xl:h-[420px]"
           >
             <Image
-              src="/placeholder.svg?height=256&width=512"
+              src="/images/about/interface-downloading.svg"
               alt="Finance Desk Team"
               layout="fill"
-              objectFit="cover"
+              objectFit=""
             />
           </motion.div>
         </div>
@@ -56,7 +56,7 @@ export default function AboutLanding() {
         initial="hidden"
         animate="visible"
         variants={fadeIn}
-        className="mx-auto mt-52 flex max-w-screen-2xl justify-center px-8 py-20"
+        className="mx-auto flex max-w-screen-2xl justify-center px-8"
       >
         <div className="text-center">
           <motion.h2 variants={slideUp} className="mb-12 text-4xl font-extrabold">
@@ -71,13 +71,13 @@ export default function AboutLanding() {
           </motion.p>
           <motion.div
             variants={slideUp}
-            className="relative mx-auto h-64 w-full max-w-2xl overflow-hidden rounded-lg"
+            className="relative mx-auto h-[340px] max-w-2xl rounded-lg md:w-full xl:h-[420px]"
           >
             <Image
-              src="/placeholder.svg?height=256&width=512"
+              src="/images/about/customer-service-support-support-team.svg"
               alt="Finance Vision"
               layout="fill"
-              objectFit="cover"
+              objectFit=""
             />
           </motion.div>
         </div>
@@ -87,7 +87,7 @@ export default function AboutLanding() {
         initial="hidden"
         animate="visible"
         variants={stagger}
-        className="mx-auto mt-52 flex max-w-screen-2xl justify-center px-8 py-20"
+        className="mx-auto flex max-w-screen-2xl justify-center px-8 py-20"
       >
         <div className="px-4 py-8">
           <motion.div variants={fadeIn} className="max-w-xl">

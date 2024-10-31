@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { Facebook, Instagram, Twitter, Github } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import FloatingChatbot from '@/components/ui/floating-chatbot';
+import { NewsletterFormComponent } from '../ui/newsletter-form';
 
 export default function Footer() {
   return (
@@ -13,33 +12,14 @@ export default function Footer() {
         <div className="lg:flex lg:items-start lg:gap-8">
           <div className="mt-8 grid grid-cols-2 gap-8 lg:mt-0 lg:grid-cols-4 lg:gap-y-16">
             <div className="col-span-2">
-              <div>
-                <h2 className="text-2xl font-bold">Get the latest news!</h2>
-                <p className="mt-4 pr-10">
-                  Stay informed with the latest financial news, tips, and insights directly to your
-                  inbox.
-                </p>
-              </div>
+              <h2 className="text-2xl font-bold">Get the latest news!</h2>
+              <p className="mt-4 pr-10">
+                Stay informed with the latest financial news, tips, and insights directly to your
+                inbox.
+              </p>
             </div>
 
-            <div className="col-span-2 lg:col-span-3 lg:flex lg:items-end">
-              <form className="w-full">
-                <label htmlFor="UserEmail" className="sr-only">
-                  Email
-                </label>
-                <div className="rounded-2xl border border-input p-2 sm:flex sm:items-center sm:gap-4">
-                  <Input
-                    type="email"
-                    id="UserEmail"
-                    placeholder="johndoe@thefinancedesk.co.za"
-                    className="w-full border-none sm:text-sm"
-                  />
-                  <Button type="submit" className="mt-1 w-full sm:mt-0 sm:w-auto">
-                    Sign Up
-                  </Button>
-                </div>
-              </form>
-            </div>
+            <NewsletterFormComponent />
 
             <div className="col-span-2 sm:col-span-1">
               <p className="font-medium">Services</p>
@@ -52,11 +32,6 @@ export default function Footer() {
                 <li>
                   <Link href="#" className="transition hover:opacity-75">
                     Company Review
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="transition hover:opacity-75">
-                    Accounts Review
                   </Link>
                 </li>
                 <li>
@@ -76,7 +51,7 @@ export default function Footer() {
               <p className="font-medium">Company</p>
               <ul className="mt-6 space-y-4 text-sm">
                 <li>
-                  <Link href="#" className="transition hover:opacity-75">
+                  <Link href="/about" className="transition hover:opacity-75">
                     About
                   </Link>
                 </li>
@@ -102,13 +77,8 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="transition hover:opacity-75">
+                  <Link href="/contact#FAQ" className="transition hover:opacity-75">
                     FAQs
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="transition hover:opacity-75">
-                    Live Chat
                   </Link>
                 </li>
               </ul>
@@ -130,11 +100,6 @@ export default function Footer() {
                 <li>
                   <Link href="#" className="transition hover:opacity-75">
                     Refund Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="transition hover:opacity-75">
-                    Hiring Statistics
                   </Link>
                 </li>
               </ul>

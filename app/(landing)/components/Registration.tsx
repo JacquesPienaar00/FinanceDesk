@@ -19,9 +19,10 @@ export default function RegistrationSection() {
               solutions
             </h2>
             <p className="mb-6 text-muted-foreground">
-              Starting a new business can be complex and time-consuming, but it doesn't have to be.
-              Our full suite of compliance and registration solutions is designed to simplify your
-              start-up process, allowing you to focus on what matters most: growing your business.
+              Starting a new business can be complex and time-consuming, but it doesn&apos;t have to
+              be. Our full suite of compliance and registration solutions is designed to simplify
+              your start-up process, allowing you to focus on what matters most: growing your
+              business.
             </p>
             <div className="flex items-start space-x-4">
               <CheckCircle className="mt-1 text-primary" />

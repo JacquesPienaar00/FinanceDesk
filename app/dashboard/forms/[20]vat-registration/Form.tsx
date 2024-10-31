@@ -1,35 +1,45 @@
-"use client";
+'use client';
 
-import { useForm, SubmitHandler, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
-import { FormWrapper } from "@/app/dashboard/forms/components/FormWrapper";
-import { useFormSubmission } from "@/app/dashboard/hooks/useFormSubmmisions";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { FormWrapper } from '@/app/dashboard/forms/components/FormWrapper';
+import { useFormSubmission } from '@/app/dashboard/forms/hooks/useFormSubmmisions';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 const formSchema = z.object({
-  sarsUsername: z.string().min(1, "SARS username is required"),
-  sarsPassword: z.string().min(1, "SARS password is required"),
+  sarsUsername: z.string().min(1, 'SARS username is required'),
+  sarsPassword: z.string().min(1, 'SARS password is required'),
   exampleAttachment: z.any().optional(),
-  natureOfIndustry: z.string().min(1, "Nature of industry is required"),
-  turnoverOption: z.enum(["lessThan50k", "moreThan50k"]),
-  turnover: z.string().min(1, "Turnover is required"),
-  assessmentPeriod: z.string().min(1, "Assessment period is required"),
-  assessmentTurnover: z.string().min(1, "Assessment turnover is required"),
-  assessmentBankStatements: z.any().refine((files) => files?.length > 0, "Assessment period bank statements are required"),
+  natureOfIndustry: z.string().min(1, 'Nature of industry is required'),
+  turnoverOption: z.enum(['lessThan50k', 'moreThan50k']),
+  turnover: z.string().min(1, 'Turnover is required'),
+  assessmentPeriod: z.string().min(1, 'Assessment period is required'),
+  assessmentTurnover: z.string().min(1, 'Assessment turnover is required'),
+  assessmentBankStatements: z
+    .any()
+    .refine((files) => files?.length > 0, 'Assessment period bank statements are required'),
   cipcDocument: z.any().optional(),
-  proofOfBusinessAddress: z.any().refine((files) => files?.length > 0, "Proof of business address is required"),
-  customerInvoices: z.any().refine((files) => files?.length > 0, "Customer invoices are required"),
+  proofOfBusinessAddress: z
+    .any()
+    .refine((files) => files?.length > 0, 'Proof of business address is required'),
+  customerInvoices: z.any().refine((files) => files?.length > 0, 'Customer invoices are required'),
   makeBooking: z.boolean(),
 });
 
@@ -37,7 +47,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export function VATRegistrationForm({
   onSubmissionSuccess,
-  collectionName = "vat-registration",
+  collectionName = 'vat-registration',
 }: {
   onSubmissionSuccess: () => void;
   collectionName?: string;
@@ -46,7 +56,7 @@ export function VATRegistrationForm({
   const { data: session } = useSession();
   const router = useRouter();
 
-  const { submitForm, isSubmitting } = useFormSubmission("19", async () => {
+  const { submitForm, isSubmitting } = useFormSubmission('19', async () => {
     onSubmissionSuccess();
   });
 
@@ -60,33 +70,39 @@ export function VATRegistrationForm({
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      turnoverOption: "lessThan50k",
+      turnoverOption: 'lessThan50k',
       makeBooking: false,
     },
   });
 
-  const turnoverOption = watch("turnoverOption");
-  const makeBooking = watch("makeBooking");
+  const turnoverOption = watch('turnoverOption');
+  const makeBooking = watch('makeBooking');
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
       if (!session) {
         toast({
-          title: "Authentication required",
-          description: "Please sign in to submit the form.",
-          variant: "destructive",
+          title: 'Authentication required',
+          description: 'Please sign in to submit the form.',
+          variant: 'destructive',
         });
         return;
       }
 
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (key === "exampleAttachment" || key === "assessmentBankStatements" || key === "cipcDocument" || key === "proofOfBusinessAddress" || key === "customerInvoices") {
+        if (
+          key === 'exampleAttachment' ||
+          key === 'assessmentBankStatements' ||
+          key === 'cipcDocument' ||
+          key === 'proofOfBusinessAddress' ||
+          key === 'customerInvoices'
+        ) {
           if (value && value.length > 0) {
             formData.append(key, value[0]);
           }
-        } else if (key === "makeBooking") {
-          formData.append(key, value ? "true" : "false");
+        } else if (key === 'makeBooking') {
+          formData.append(key, value ? 'true' : 'false');
         } else {
           formData.append(key, value as string);
         }
@@ -94,11 +110,11 @@ export function VATRegistrationForm({
 
       // Add NextAuth email
       if (session.user?.email) {
-        formData.append("nextauth", session.user.email);
+        formData.append('nextauth', session.user.email);
       }
 
-      formData.append("collectionName", collectionName);
-      formData.append("formId", "19");
+      formData.append('collectionName', collectionName);
+      formData.append('formId', '19');
 
       const success = await submitForm(formData);
 
@@ -106,11 +122,14 @@ export function VATRegistrationForm({
         router.refresh();
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error('Error submitting form:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "There was a problem submitting your form. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'There was a problem submitting your form. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -130,12 +149,12 @@ export function VATRegistrationForm({
               <Label htmlFor="sarsUsername">SARS Username</Label>
               <Input
                 id="sarsUsername"
-                {...register("sarsUsername")}
+                {...register('sarsUsername')}
                 placeholder="Enter your SARS username"
-                className={errors.sarsUsername ? "border-red-500" : ""}
+                className={errors.sarsUsername ? 'border-red-500' : ''}
               />
               {errors.sarsUsername && (
-                <p className="text-red-500 text-sm">{errors.sarsUsername.message}</p>
+                <p className="text-sm text-red-500">{errors.sarsUsername.message}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -143,21 +162,17 @@ export function VATRegistrationForm({
               <Input
                 id="sarsPassword"
                 type="password"
-                {...register("sarsPassword")}
+                {...register('sarsPassword')}
                 placeholder="Enter your SARS password"
-                className={errors.sarsPassword ? "border-red-500" : ""}
+                className={errors.sarsPassword ? 'border-red-500' : ''}
               />
               {errors.sarsPassword && (
-                <p className="text-red-500 text-sm">{errors.sarsPassword.message}</p>
+                <p className="text-sm text-red-500">{errors.sarsPassword.message}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="exampleAttachment">Attach Example (Optional)</Label>
-              <Input
-                id="exampleAttachment"
-                type="file"
-                {...register("exampleAttachment")}
-              />
+              <Input id="exampleAttachment" type="file" {...register('exampleAttachment')} />
             </div>
           </CardContent>
         </Card>
@@ -171,12 +186,12 @@ export function VATRegistrationForm({
               <Label htmlFor="natureOfIndustry">Nature of Industry</Label>
               <Textarea
                 id="natureOfIndustry"
-                {...register("natureOfIndustry")}
+                {...register('natureOfIndustry')}
                 placeholder="Describe the nature of your industry"
-                className={errors.natureOfIndustry ? "border-red-500" : ""}
+                className={errors.natureOfIndustry ? 'border-red-500' : ''}
               />
               {errors.natureOfIndustry && (
-                <p className="text-red-500 text-sm">{errors.natureOfIndustry.message}</p>
+                <p className="text-sm text-red-500">{errors.natureOfIndustry.message}</p>
               )}
             </div>
             <div className="space-y-2">
@@ -204,20 +219,20 @@ export function VATRegistrationForm({
             </div>
             <div className="space-y-2">
               <Label htmlFor="turnover">
-                {turnoverOption === "lessThan50k" 
-                  ? "12 months turnover as per bank statement" 
-                  : "3-12 months turnover as per bank statement"}
+                {turnoverOption === 'lessThan50k'
+                  ? '12 months turnover as per bank statement'
+                  : '3-12 months turnover as per bank statement'}
               </Label>
               <Input
                 id="turnover"
-                {...register("turnover")}
+                {...register('turnover')}
                 placeholder="Enter turnover amount"
-                className={errors.turnover ? "border-red-500" : ""}
+                className={errors.turnover ? 'border-red-500' : ''}
               />
-              <p className="text-sm text-gray-500">Please state estimate if bank statements are unavailable</p>
-              {errors.turnover && (
-                <p className="text-red-500 text-sm">{errors.turnover.message}</p>
-              )}
+              <p className="text-sm text-gray-500">
+                Please state estimate if bank statements are unavailable
+              </p>
+              {errors.turnover && <p className="text-sm text-red-500">{errors.turnover.message}</p>}
             </div>
           </CardContent>
         </Card>
@@ -234,7 +249,7 @@ export function VATRegistrationForm({
                 control={control}
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger className={errors.assessmentPeriod ? "border-red-500" : ""}>
+                    <SelectTrigger className={errors.assessmentPeriod ? 'border-red-500' : ''}>
                       <SelectValue placeholder="Select assessment period" />
                     </SelectTrigger>
                     <SelectContent>
@@ -248,19 +263,19 @@ export function VATRegistrationForm({
                 )}
               />
               {errors.assessmentPeriod && (
-                <p className="text-red-500 text-sm">{errors.assessmentPeriod.message}</p>
+                <p className="text-sm text-red-500">{errors.assessmentPeriod.message}</p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="assessmentTurnover">Turnover for Selected Assessment Period</Label>
               <Input
                 id="assessmentTurnover"
-                {...register("assessmentTurnover")}
+                {...register('assessmentTurnover')}
                 placeholder="Enter turnover amount (minimum R50,000)"
-                className={errors.assessmentTurnover ? "border-red-500" : ""}
+                className={errors.assessmentTurnover ? 'border-red-500' : ''}
               />
               {errors.assessmentTurnover && (
-                <p className="text-red-500 text-sm">{errors.assessmentTurnover.message}</p>
+                <p className="text-sm text-red-500">{errors.assessmentTurnover.message}</p>
               )}
             </div>
           </CardContent>
@@ -276,44 +291,48 @@ export function VATRegistrationForm({
               <Input
                 id="assessmentBankStatements"
                 type="file"
-                {...register("assessmentBankStatements")}
-                className={errors.assessmentBankStatements ? "border-red-500" : ""}
+                {...register('assessmentBankStatements')}
+                className={errors.assessmentBankStatements ? 'border-red-500' : ''}
               />
               {errors.assessmentBankStatements && (
-                <p className="text-red-500 text-sm">{errors.assessmentBankStatements.message as React.ReactNode }</p>
+                <p className="text-sm text-red-500">
+                  {errors.assessmentBankStatements.message as React.ReactNode}
+                </p>
               )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="cipcDocument">CIPC Document (if not uploaded already)</Label>
-              <Input
-                id="cipcDocument"
-                type="file"
-                {...register("cipcDocument")}
-              />
+              <Input id="cipcDocument" type="file" {...register('cipcDocument')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="proofOfBusinessAddress">Proof of Business Address</Label>
               <Input
                 id="proofOfBusinessAddress"
                 type="file"
-                {...register("proofOfBusinessAddress")}
-                className={errors.proofOfBusinessAddress ? "border-red-500" : ""}
+                {...register('proofOfBusinessAddress')}
+                className={errors.proofOfBusinessAddress ? 'border-red-500' : ''}
               />
               {errors.proofOfBusinessAddress && (
-                <p className="text-red-500 text-sm">{errors.proofOfBusinessAddress.message as React.ReactNode}</p>
+                <p className="text-sm text-red-500">
+                  {errors.proofOfBusinessAddress.message as React.ReactNode}
+                </p>
               )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="customerInvoices">Invoices Issued to Customers for Assessment Period</Label>
+              <Label htmlFor="customerInvoices">
+                Invoices Issued to Customers for Assessment Period
+              </Label>
               <Input
                 id="customerInvoices"
                 type="file"
                 multiple
-                {...register("customerInvoices")}
-                className={errors.customerInvoices ? "border-red-500" : ""}
+                {...register('customerInvoices')}
+                className={errors.customerInvoices ? 'border-red-500' : ''}
               />
               {errors.customerInvoices && (
-                <p className="text-red-500 text-sm">{errors.customerInvoices.message as React.ReactNode}</p>
+                <p className="text-sm text-red-500">
+                  {errors.customerInvoices.message as React.ReactNode}
+                </p>
               )}
             </div>
           </CardContent>
@@ -324,20 +343,16 @@ export function VATRegistrationForm({
             name="makeBooking"
             control={control}
             render={({ field }) => (
-              <Switch
-                id="makeBooking"
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
+              <Switch id="makeBooking" checked={field.value} onCheckedChange={field.onChange} />
             )}
           />
           <Label htmlFor="makeBooking">
-            I'd like to schedule a call with Shaun to discuss within 24 hours
+            I&apos;d like to schedule a call with Shaun to discuss within 24 hours
           </Label>
         </div>
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "Submitting..." : "Submit VAT Registration"}
+          {isSubmitting ? 'Submitting...' : 'Submit VAT Registration'}
         </Button>
       </form>
     </FormWrapper>

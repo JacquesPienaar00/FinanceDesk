@@ -15,12 +15,10 @@ export default function Home() {
     <>
       <Header />
       <Hero />
-
       <ServicesSection />
       <RegistrationSection />
       <CTA />
       <Testimonial />
-
       <Footer />
     </>
   );

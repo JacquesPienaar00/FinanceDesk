@@ -1,10 +1,4 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface FormWrapperProps {
   title: string;
@@ -12,14 +6,10 @@ interface FormWrapperProps {
   children: React.ReactNode;
 }
 
-export function FormWrapper({
-  title,
-  description,
-  children,
-}: FormWrapperProps) {
+export function FormWrapper({ title, description, children }: FormWrapperProps) {
   return (
     <>
-      <Card className="mx-auto w-full max-w-4xl">
+      <Card className="z-50 mx-auto w-full max-w-4xl">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>

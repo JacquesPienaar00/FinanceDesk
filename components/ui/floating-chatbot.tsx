@@ -12,38 +12,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageCircle, X, User, Bot, Ticket, Send, CheckCircle } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { io, Socket } from 'socket.io-client';
 
 interface Message {
+  id: string;
   text: string;
   sender: 'user' | 'bot' | 'human';
-  timestamp: string;
-}
-
-interface UserInfo {
-  name: string;
-  email: string;
+  createdAt: string;
 }
 
 interface Ticket {
+  id: string;
   number: string;
-  status: string;
+  status: 'Open' | 'InProgress' | 'Closed';
   createdAt: string;
+  updatedAt: string;
   messages: Message[];
+  subject: string;
+}
+
+interface BotResponse {
+  id: string;
+  trigger: string;
+  response: string;
 }
 
 function formatTicketNumber(number: string) {
-  const shortNumber = number.slice(-6);
-  return shortNumber.toUpperCase();
+  return number.toUpperCase();
 }
 
 function getStatusColor(status: string) {
   switch (status.toLowerCase()) {
     case 'open':
       return 'bg-green-100 text-green-800';
-    case 'in progress':
+    case 'inprogress':
       return 'bg-yellow-100 text-yellow-800';
     case 'closed':
       return 'bg-red-100 text-red-800';
@@ -54,35 +60,24 @@ function getStatusColor(status: string) {
 
 export default function FloatingChatbot() {
   const { data: session, status } = useSession();
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [isHumanRequested, setIsHumanRequested] = useState(false);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const [isBotDisabled, setIsBotDisabled] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showClosedMessage, setShowClosedMessage] = useState(false);
+  const [botResponses, setBotResponses] = useState<BotResponse[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      if (status === 'authenticated' && session?.user) {
-        setUserInfo({
-          name: session.user.name || '',
-          email: session.user.email || '',
-        });
-        fetchTickets();
-      } else if (status === 'unauthenticated') {
-        setMessages([
-          {
-            text: 'Welcome! Please provide your name and email to start chatting.',
-            sender: 'bot',
-            timestamp: new Date().toISOString(),
-          },
-        ]);
-      }
+    if (isOpen && status === 'authenticated') {
+      fetchTickets();
+      fetchBotResponses();
     }
-  }, [isOpen, status, session]);
+  }, [isOpen, status]);
 
   useEffect(() => {
     if (selectedTicket && selectedTicket.status === 'Closed') {
@@ -98,16 +93,44 @@ export default function FloatingChatbot() {
     }
   }, [messages]);
 
+  const initSocket = async () => {
+    await fetch('/api/socket');
+    const newSocket = io({
+      path: '/api/socket',
+      addTrailingSlash: false,
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Connected to Socket.IO server');
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+
+    newSocket.on('receive-message', (message: Message) => {
+      setMessages((prevMessages) => [...prevMessages, message]);
+    });
+
+    newSocket.on('ticket-updated', (updatedTicket: Ticket) => {
+      setSelectedTicket(updatedTicket);
+      setTickets((prevTickets) =>
+        prevTickets.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)),
+      );
+      setMessages(updatedTicket.messages);
+    });
+
+    setSocket(newSocket);
+  };
+
   const fetchTickets = async () => {
     try {
-      const response = await fetch(
-        `/api/chatbot/tickets?userId=${session?.user?.email || userInfo?.email}`,
-      );
+      const response = await fetch('/api/tickets');
       if (response.ok) {
         const data = await response.json();
         setTickets(data.tickets);
         if (data.tickets.length > 0) {
-          const latestTicket = data.tickets[data.tickets.length - 1];
+          const latestTicket = data.tickets[0];
           setSelectedTicket(latestTicket);
           setMessages(latestTicket.messages);
         }
@@ -119,59 +142,105 @@ export default function FloatingChatbot() {
     }
   };
 
+  const fetchBotResponses = async () => {
+    try {
+      const response = await fetch('/api/admin/bot-responses');
+      if (response.ok) {
+        const data = await response.json();
+        setBotResponses(data);
+      } else {
+        console.error('Failed to fetch bot responses');
+      }
+    } catch (error) {
+      console.error('Error fetching bot responses:', error);
+    }
+  };
+
+  const getBotResponse = (userInput: string): string => {
+    const lowerInput = userInput.toLowerCase();
+    for (const botResponse of botResponses) {
+      if (lowerInput.includes(botResponse.trigger.toLowerCase())) {
+        return botResponse.response;
+      }
+    }
+    return "I'm sorry, I don't have a specific answer for that. How else can I assist you?";
+  };
+
   const handleSend = async () => {
     if (input.trim() === '') return;
 
-    if (!session && !userInfo) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          text: 'Before we continue, could you please provide your name and email?',
-          sender: 'bot',
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-      return;
-    }
-
     const userMessage: Message = {
+      id: Date.now().toString(),
       text: input,
       sender: 'user',
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
     try {
-      const response = await fetch('/api/chatbot/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        selectedTicket ? `/api/tickets/${selectedTicket.id}` : '/api/tickets',
+        {
+          method: selectedTicket ? 'PUT' : 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: input,
+            subject: 'chatbot',
+          }),
         },
-        body: JSON.stringify({
-          text: input,
-          sender: 'user',
-          userInfo: session?.user || userInfo,
-        }),
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
-        if (data.tickets && data.tickets.length > 0) {
-          const latestTicket = data.tickets[data.tickets.length - 1];
-          setSelectedTicket(latestTicket);
-          setMessages(latestTicket.messages);
-          setTickets(data.tickets);
+        if (data.ticket) {
+          setSelectedTicket(data.ticket);
+          setMessages(data.ticket.messages);
+          if (!selectedTicket) {
+            setTickets((prev) => [data.ticket, ...prev]);
+          } else {
+            setTickets((prev) => prev.map((t) => (t.id === data.ticket.id ? data.ticket : t)));
+          }
 
-          if (!selectedTicket || latestTicket.number !== selectedTicket.number) {
-            setMessages((prev) => [
-              ...prev,
-              {
-                text: `A new support ticket has been created with number ${formatTicketNumber(latestTicket.number)}. How can we assist you today?`,
-                sender: 'bot',
-                timestamp: new Date().toISOString(),
-              },
-            ]);
+          if (socket) {
+            socket.emit('update-ticket', { roomId: data.ticket.id, ticket: data.ticket });
+          }
+        }
+
+        if (!isBotDisabled) {
+          const botResponseText = getBotResponse(input);
+          const botMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            text: botResponseText,
+            sender: 'bot',
+            createdAt: new Date().toISOString(),
+          };
+
+          setMessages((prev) => [...prev, botMessage]);
+
+          const botResponse = await fetch(`/api/tickets/${data.ticket.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              message: botResponseText,
+              sender: 'bot',
+            }),
+          });
+
+          if (botResponse.ok) {
+            const updatedTicket = await botResponse.json();
+            setSelectedTicket(updatedTicket.ticket);
+            setTickets((prev) =>
+              prev.map((t) => (t.id === updatedTicket.ticket.id ? updatedTicket.ticket : t)),
+            );
+
+            if (socket) {
+              socket.emit('send-message', { roomId: updatedTicket.ticket.id, message: botMessage });
+            }
           }
         }
       } else {
@@ -180,88 +249,92 @@ export default function FloatingChatbot() {
     } catch (error) {
       console.error('Error sending message:', error);
     }
-
-    let botMessage: Message;
-    if (isHumanRequested) {
-      botMessage = {
-        text: 'A human agent will be with you shortly. Please wait.',
-        sender: 'human',
-        timestamp: new Date().toISOString(),
-      };
-    } else {
-      botMessage = {
-        text: 'Thank you for your message. How else can I assist you?',
-        sender: 'bot',
-        timestamp: new Date().toISOString(),
-      };
-    }
-    setMessages((prev) => [...prev, botMessage]);
   };
 
   const requestHuman = async () => {
+    if (!socket) {
+      await initSocket();
+    }
+
     setIsHumanRequested(true);
-    const botMessage: Message = {
-      text: "I'm connecting you with a human agent. Please wait a moment.",
-      sender: 'bot',
-      timestamp: new Date().toISOString(),
-    };
+    setIsBotDisabled(true);
     const humanMessage: Message = {
+      id: Date.now().toString(),
       text: "Hello! I'm a human agent. How can I assist you today?",
       sender: 'human',
-      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
     };
+    setMessages((prev) => [...prev, humanMessage]);
 
-    setMessages((prev) => [...prev, botMessage, humanMessage]);
+    if (selectedTicket) {
+      try {
+        const response = await fetch(`/api/tickets/${selectedTicket.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: humanMessage.text,
+            sender: 'human',
+          }),
+        });
+
+        if (response.ok) {
+          const updatedTicket = await response.json();
+          setSelectedTicket(updatedTicket.ticket);
+          setMessages(updatedTicket.ticket.messages);
+          setTickets((prev) =>
+            prev.map((t) => (t.id === updatedTicket.ticket.id ? updatedTicket.ticket : t)),
+          );
+
+          if (socket) {
+            socket.emit('join-room', updatedTicket.ticket.id);
+            socket.emit('send-message', { roomId: updatedTicket.ticket.id, message: humanMessage });
+          }
+        }
+      } catch (error) {
+        console.error('Error sending human message:', error);
+      }
+    }
   };
 
   const toggleChatbot = () => {
     setIsOpen(!isOpen);
   };
 
-  const handleUserInfoSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
-    const email = formData.get('email') as string;
-    if (name && email) {
-      setUserInfo({ name, email });
-      const welcomeMessage: Message = {
-        text: `Thank you, ${name}. How can I assist you today?`,
-        sender: 'bot',
-        timestamp: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, welcomeMessage]);
-      fetchTickets();
-    }
-  };
-
   const startNewConversation = async () => {
     try {
-      const response = await fetch('/api/chatbot/messages', {
+      const response = await fetch('/api/tickets', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: 'Start new conversation',
-          sender: 'system',
-          userInfo: session?.user || userInfo,
+          message: 'Start new conversation',
+          subject: 'Support Chat',
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.tickets && data.tickets.length > 0) {
-          const latestTicket = data.tickets[data.tickets.length - 1];
-          setSelectedTicket(latestTicket);
-          setTickets(data.tickets);
-          setMessages([
-            {
-              text: `A new support ticket has been created with number ${formatTicketNumber(latestTicket.number)}. How can I assist you today?`,
-              sender: 'bot',
-              timestamp: new Date().toISOString(),
-            },
-          ]);
+        if (data.ticket) {
+          setSelectedTicket(data.ticket);
+          setTickets((prev) => [data.ticket, ...prev]);
+          const initialMessage: Message = {
+            id: Date.now().toString(),
+            text: `A new support ticket has been created with number ${formatTicketNumber(
+              data.ticket.number,
+            )}. How can I assist you today?`,
+            sender: 'bot',
+            createdAt: new Date().toISOString(),
+          };
+          setMessages([initialMessage]);
+          setIsHumanRequested(false);
+          setIsBotDisabled(false);
+          if (socket) {
+            socket.emit('join-room', data.ticket.id);
+            socket.emit('send-message', { roomId: data.ticket.id, message: initialMessage });
+          }
         }
       } else {
         console.error('Failed to start new conversation');
@@ -271,32 +344,25 @@ export default function FloatingChatbot() {
     }
   };
 
-  const handleTicketSelect = (ticketNumber: string) => {
-    const ticket = tickets.find((t) => t.number === ticketNumber);
+  const handleTicketSelect = (ticketId: string) => {
+    const ticket = tickets.find((t) => t.id === ticketId);
     if (ticket) {
       setSelectedTicket(ticket);
       setMessages(ticket.messages);
+      setIsHumanRequested(false);
+      setIsBotDisabled(false);
+      if (socket) {
+        socket.emit('join-room', ticket.id);
+      }
     }
   };
-
-  const checkAndCreateNewTicket = async () => {
-    if (!selectedTicket || selectedTicket.status === 'Closed') {
-      await startNewConversation();
-    }
-  };
-
-  useEffect(() => {
-    if (selectedTicket && selectedTicket.status === 'Closed') {
-      checkAndCreateNewTicket();
-    }
-  }, [selectedTicket]);
 
   return (
     <>
       {isOpen && (
-        <div className="fixed bottom-20 right-4 flex h-[70vh] w-96 scale-100 transform flex-col overflow-hidden rounded-lg border bg-background opacity-100 shadow-lg transition-all duration-300 ease-in-out">
-          <div className="flex w-full items-center justify-between border-b bg-background p-4">
-            <h2 className="text-lg font-semibold">Support</h2>
+        <Card className="fixed bottom-20 right-4 flex h-[70vh] w-96 scale-100 transform flex-col overflow-hidden rounded-lg border bg-background opacity-100 shadow-lg transition-all duration-300 ease-in-out">
+          <CardHeader className="flex flex-row items-center justify-between p-4">
+            <CardTitle className="text-lg">Support</CardTitle>
             {selectedTicket && (
               <div className="flex items-center space-x-2">
                 <Ticket className="h-4 w-4 text-primary" />
@@ -304,7 +370,9 @@ export default function FloatingChatbot() {
                   #{formatTicketNumber(selectedTicket.number)}
                 </span>
                 <span
-                  className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(selectedTicket.status)}`}
+                  className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(
+                    selectedTicket.status,
+                  )}`}
                 >
                   {selectedTicket.status}
                 </span>
@@ -312,8 +380,9 @@ export default function FloatingChatbot() {
             )}
             <Button variant="ghost" size="icon" onClick={toggleChatbot}>
               <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
             </Button>
-          </div>
+          </CardHeader>
           <AnimatePresence>
             {showClosedMessage && (
               <motion.div
@@ -331,18 +400,16 @@ export default function FloatingChatbot() {
             )}
           </AnimatePresence>
           <Tabs defaultValue="chat" className="flex flex-grow flex-col">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="chat">Chat</TabsTrigger>
               <TabsTrigger value="tickets">Tickets</TabsTrigger>
-              <TabsTrigger value="faq">FAQ</TabsTrigger>
-              <TabsTrigger value="contact">Contact</TabsTrigger>
             </TabsList>
             <TabsContent value="chat" className="flex flex-grow flex-col overflow-hidden">
               <ScrollArea className="h-[45vh]" ref={scrollAreaRef}>
                 <div className="flex flex-col space-y-4 p-4">
-                  {messages.map((message, index) => (
+                  {messages.map((message) => (
                     <div
-                      key={index}
+                      key={message.id}
                       className={`flex ${
                         message.sender === 'user' ? 'justify-end' : 'justify-start'
                       }`}
@@ -383,119 +450,77 @@ export default function FloatingChatbot() {
                   ))}
                 </div>
               </ScrollArea>
-              <div className="border-t bg-background p-4">
-                {!session && !userInfo ? (
-                  <form onSubmit={handleUserInfoSubmit} className="space-y-2">
-                    <Input name="name" placeholder="Your Name" required />
-                    <Input name="email" type="email" placeholder="Your Email" required />
-                    <Button type="submit" className="w-full">
-                      Submit
-                    </Button>
-                  </form>
-                ) : (
-                  <>
-                    <div className="mb-2 flex">
-                      <Input
-                        type="text"
-                        placeholder="Type a message..."
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if  (e.key === 'Enter') {
-                            e.preventDefault();
-                            checkAndCreateNewTicket().then(() => handleSend());
-                          }
-                        }}
-                        className="mr-2 flex-grow"
-                      />
-                      <Button onClick={() => checkAndCreateNewTicket().then(() => handleSend())}>
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    {!isHumanRequested && (
-                      <Button onClick={requestHuman} variant="outline" className="mb-2 w-full">
-                        <User className="mr-2 h-4 w-4" />
-                        Request Human Agent
-                      </Button>
-                    )}
-                    {selectedTicket && selectedTicket.status === 'Closed' && (
-                      <Button onClick={startNewConversation} variant="outline" className="w-full">
-                        Start New Conversation
-                      </Button>
-                    )}
-                  </>
+              <CardContent className="border-t bg-background p-4">
+                <div className="mb-2 flex">
+                  <Input
+                    type="text"
+                    placeholder="Type a message..."
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    className="mr-2 flex-grow"
+                  />
+                  <Button onClick={handleSend}>
+                    <Send className="h-4 w-4" />
+                    <span className="sr-only">Send</span>
+                  </Button>
+                </div>
+                {!isHumanRequested && (
+                  <Button onClick={requestHuman} variant="outline" className="mb-2 w-full">
+                    <User className="mr-2 h-4 w-4" />
+                    Request Human Agent
+                  </Button>
                 )}
-              </div>
+                {selectedTicket && selectedTicket.status === 'Closed' && (
+                  <Button onClick={startNewConversation} variant="outline" className="w-full">
+                    Start New Conversation
+                  </Button>
+                )}
+              </CardContent>
             </TabsContent>
             <TabsContent value="tickets" className="flex flex-col">
-              <div className="border-b p-4">
+              <CardContent className="border-b p-4">
                 <Select onValueChange={handleTicketSelect}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a ticket" />
                   </SelectTrigger>
                   <SelectContent>
-                    <ScrollArea>
+                    <ScrollArea className="h-[200px]">
                       {tickets.map((ticket) => (
-                        <SelectItem key={ticket.number} value={ticket.number}>
+                        <SelectItem key={ticket.id} value={ticket.id}>
                           #{formatTicketNumber(ticket.number)} - {ticket.status}
                         </SelectItem>
                       ))}
                     </ScrollArea>
                   </SelectContent>
                 </Select>
-              </div>
+              </CardContent>
 
               {selectedTicket && (
-                <div className="border-t bg-background p-4">
-                  <h3 className="font-semibold">
+                <CardContent className="border-t bg-background p-4">
+                  <CardDescription className="font-semibold">
                     Selected Ticket: #{formatTicketNumber(selectedTicket.number)}
-                  </h3>
+                  </CardDescription>
                   <ScrollArea className="h-[45vh]">
                     <div className="space-y-2">
-                      {selectedTicket.messages.map((message, index) => (
-                        <div key={index} className="text-sm">
+                      {selectedTicket.messages.map((message) => (
+                        <div key={message.id} className="text-sm">
                           <span className="font-semibold">{message.sender}: </span>
                           {message.text}
                         </div>
                       ))}
                     </div>
                   </ScrollArea>
-                </div>
+                </CardContent>
               )}
             </TabsContent>
-            <TabsContent value="faq" className="overflow-auto">
-              <ScrollArea className="h-full">
-                <div className="space-y-4 p-4">
-                  <h3 className="font-semibold">How do I reset my password?</h3>
-                  <p>
-                    You can reset your password by clicking on the "Forgot Password" link on the
-                    login page.
-                  </p>
-                  <h3 className="font-semibold">What are your business hours?</h3>
-                  <p>Our customer support is available Monday to Friday, 9 AM to 5 PM EST.</p>
-                </div>
-              </ScrollArea>
-            </TabsContent>
-            <TabsContent value="contact" className="overflow-auto">
-              <ScrollArea className="h-full">
-                <div className="p-4">
-                  <form className="space-y-4">
-                    <Input placeholder="Your Name" />
-                    <Input type="email" placeholder="Your Email" />
-                    <textarea
-                      className="w-full rounded-md border p-2"
-                      rows={4}
-                      placeholder="Your Message"
-                    ></textarea>
-                    <Button type="submit" className="w-full">
-                      Send Message
-                    </Button>
-                  </form>
-                </div>
-              </ScrollArea>
-            </TabsContent>
           </Tabs>
-        </div>
+        </Card>
       )}
 
       <Button
@@ -503,6 +528,7 @@ export default function FloatingChatbot() {
         onClick={toggleChatbot}
       >
         <MessageCircle className="h-6 w-6" />
+        <span className="sr-only">Open chat</span>
       </Button>
     </>
   );

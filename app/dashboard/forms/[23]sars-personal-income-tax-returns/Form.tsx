@@ -1,29 +1,33 @@
-"use client";
+'use client';
 
-import { useForm, SubmitHandler, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/components/ui/use-toast";
-import { FormWrapper } from "@/app/dashboard/forms/components/FormWrapper";
-import { useFormSubmission } from "@/app/dashboard/hooks/useFormSubmmisions";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Switch } from "@/components/ui/switch";
+import { useForm, SubmitHandler, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { FormWrapper } from '@/app/dashboard/forms/components/FormWrapper';
+import { useFormSubmission } from '@/app/dashboard/forms/hooks/useFormSubmmisions';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Switch } from '@/components/ui/switch';
 
 const formSchema = z.object({
-  contactInfo: z.string().min(1, "Contact information is required"),
-  submissionMethod: z.enum(["sarsCredentials", "appointment"]),
-  sarsUsername: z.string().min(1, "SARS username is required").optional(),
-  sarsPassword: z.string().min(1, "SARS password is required").optional(),
+  contactInfo: z.string().min(1, 'Contact information is required'),
+  submissionMethod: z.enum(['sarsCredentials', 'appointment']),
+  sarsUsername: z.string().min(1, 'SARS username is required').optional(),
+  sarsPassword: z.string().min(1, 'SARS password is required').optional(),
   exampleAttachment: z.any().optional(),
-  incomeTaxCertificates: z.any().refine((files) => files?.length > 0, "Income tax certificates are required"),
-  expenseTaxCertificates: z.any().refine((files) => files?.length > 0, "Expense tax certificates are required"),
+  incomeTaxCertificates: z
+    .any()
+    .refine((files) => files?.length > 0, 'Income tax certificates are required'),
+  expenseTaxCertificates: z
+    .any()
+    .refine((files) => files?.length > 0, 'Expense tax certificates are required'),
   otherSupportingDocuments: z.any().optional(),
   agreeToContact: z.boolean(),
 });
@@ -32,7 +36,7 @@ type FormData = z.infer<typeof formSchema>;
 
 export function SARSPersonalIncomeTaxReturnsForm({
   onSubmissionSuccess,
-  collectionName = "sars-personal-income-tax-returns",
+  collectionName = 'sars-personal-income-tax-returns',
 }: {
   onSubmissionSuccess: () => void;
   collectionName?: string;
@@ -41,7 +45,7 @@ export function SARSPersonalIncomeTaxReturnsForm({
   const { data: session } = useSession();
   const router = useRouter();
 
-  const { submitForm, isSubmitting } = useFormSubmission("23", async () => {
+  const { submitForm, isSubmitting } = useFormSubmission('23', async () => {
     onSubmissionSuccess();
   });
 
@@ -55,44 +59,49 @@ export function SARSPersonalIncomeTaxReturnsForm({
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      submissionMethod: "sarsCredentials",
+      submissionMethod: 'sarsCredentials',
       agreeToContact: false,
     },
   });
 
-  const submissionMethod = watch("submissionMethod");
+  const submissionMethod = watch('submissionMethod');
 
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     try {
       if (!session) {
         toast({
-          title: "Authentication required",
-          description: "Please sign in to submit the form.",
-          variant: "destructive",
+          title: 'Authentication required',
+          description: 'Please sign in to submit the form.',
+          variant: 'destructive',
         });
         return;
       }
 
       const formData = new FormData();
       Object.entries(data).forEach(([key, value]) => {
-        if (key === "exampleAttachment" || key === "incomeTaxCertificates" || key === "expenseTaxCertificates" || key === "otherSupportingDocuments") {
+        if (
+          key === 'exampleAttachment' ||
+          key === 'incomeTaxCertificates' ||
+          key === 'expenseTaxCertificates' ||
+          key === 'otherSupportingDocuments'
+        ) {
           if (value && value.length > 0) {
             for (let i = 0; i < value.length; i++) {
               formData.append(`${key}`, value[i]);
             }
           }
-        } else if (key === "agreeToContact") {
-          formData.append(key, value ? "true" : "false");
+        } else if (key === 'agreeToContact') {
+          formData.append(key, value ? 'true' : 'false');
         } else {
           formData.append(key, value as string);
         }
       });
       // Add NextAuth email
       if (session.user?.email) {
-        formData.append("nextauth", session.user.email);
+        formData.append('nextauth', session.user.email);
       }
-      formData.append("collectionName", collectionName);
-      formData.append("formId", "23");
+      formData.append('collectionName', collectionName);
+      formData.append('formId', '23');
 
       const success = await submitForm(formData);
 
@@ -100,11 +109,14 @@ export function SARSPersonalIncomeTaxReturnsForm({
         router.refresh();
       }
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error('Error submitting form:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "There was a problem submitting your form. Please try again.",
-        variant: "destructive",
+        title: 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'There was a problem submitting your form. Please try again.',
+        variant: 'destructive',
       });
     }
   };
@@ -124,12 +136,14 @@ export function SARSPersonalIncomeTaxReturnsForm({
               <Label htmlFor="contactInfo">Contact Information</Label>
               <Textarea
                 id="contactInfo"
-                {...register("contactInfo")}
+                {...register('contactInfo')}
                 placeholder="Enter your contact information"
-                className={errors.contactInfo ? "border-red-500" : ""}
+                className={errors.contactInfo ? 'border-red-500' : ''}
               />
               {errors.contactInfo && (
-                <p className="text-red-500 text-sm">{errors.contactInfo.message as React.ReactNode}</p>
+                <p className="text-sm text-red-500">
+                  {errors.contactInfo.message as React.ReactNode}
+                </p>
               )}
             </div>
           </CardContent>
@@ -161,17 +175,19 @@ export function SARSPersonalIncomeTaxReturnsForm({
               )}
             />
 
-            {submissionMethod === "sarsCredentials" && (
+            {submissionMethod === 'sarsCredentials' && (
               <>
                 <div className="space-y-2">
                   <Label htmlFor="sarsUsername">SARS Username</Label>
                   <Input
                     id="sarsUsername"
-                    {...register("sarsUsername")}
-                    className={errors.sarsUsername ? "border-red-500" : ""}
+                    {...register('sarsUsername')}
+                    className={errors.sarsUsername ? 'border-red-500' : ''}
                   />
                   {errors.sarsUsername && (
-                    <p className="text-red-500 text-sm">{errors.sarsUsername.message as React.ReactNode}</p>
+                    <p className="text-sm text-red-500">
+                      {errors.sarsUsername.message as React.ReactNode}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -179,18 +195,22 @@ export function SARSPersonalIncomeTaxReturnsForm({
                   <Input
                     id="sarsPassword"
                     type="password"
-                    {...register("sarsPassword")}
-                    className={errors.sarsPassword ? "border-red-500" : ""}
+                    {...register('sarsPassword')}
+                    className={errors.sarsPassword ? 'border-red-500' : ''}
                   />
                   {errors.sarsPassword && (
-                    <p className="text-red-500 text-sm">{errors.sarsPassword.message as React.ReactNode}</p>
+                    <p className="text-sm text-red-500">
+                      {errors.sarsPassword.message as React.ReactNode}
+                    </p>
                   )}
                 </div>
               </>
             )}
 
-            {submissionMethod === "appointment" && (
-              <p className="text-sm text-gray-500">We will contact you to schedule an appointment.</p>
+            {submissionMethod === 'appointment' && (
+              <p className="text-sm text-gray-500">
+                We will contact you to schedule an appointment.
+              </p>
             )}
           </CardContent>
         </Card>
@@ -202,11 +222,7 @@ export function SARSPersonalIncomeTaxReturnsForm({
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="exampleAttachment">Attach Example (Optional)</Label>
-              <Input
-                id="exampleAttachment"
-                type="file"
-                {...register("exampleAttachment")}
-              />
+              <Input id="exampleAttachment" type="file" {...register('exampleAttachment')} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="incomeTaxCertificates">Income Tax Certificates</Label>
@@ -214,12 +230,16 @@ export function SARSPersonalIncomeTaxReturnsForm({
                 id="incomeTaxCertificates"
                 type="file"
                 multiple
-                {...register("incomeTaxCertificates")}
-                className={errors.incomeTaxCertificates ? "border-red-500" : ""}
+                {...register('incomeTaxCertificates')}
+                className={errors.incomeTaxCertificates ? 'border-red-500' : ''}
               />
-              <p className="text-sm text-gray-500">IRP5's, interest income certificates, etc.</p>
+              <p className="text-sm text-gray-500">
+                IRP5&apos;s, interest income certificates, etc.
+              </p>
               {errors.incomeTaxCertificates && (
-                <p className="text-red-500 text-sm">{errors.incomeTaxCertificates.message as React.ReactNode}</p>
+                <p className="text-sm text-red-500">
+                  {errors.incomeTaxCertificates.message as React.ReactNode}
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -228,12 +248,16 @@ export function SARSPersonalIncomeTaxReturnsForm({
                 id="expenseTaxCertificates"
                 type="file"
                 multiple
-                {...register("expenseTaxCertificates")}
-                className={errors.expenseTaxCertificates ? "border-red-500" : ""}
+                {...register('expenseTaxCertificates')}
+                className={errors.expenseTaxCertificates ? 'border-red-500' : ''}
               />
-              <p className="text-sm text-gray-500">Medical aid tax certificate, retirement annuity certificate, etc.</p>
+              <p className="text-sm text-gray-500">
+                Medical aid tax certificate, retirement annuity certificate, etc.
+              </p>
               {errors.expenseTaxCertificates && (
-                <p className="text-red-500 text-sm">{errors.expenseTaxCertificates.message as React.ReactNode}</p>
+                <p className="text-sm text-red-500">
+                  {errors.expenseTaxCertificates.message as React.ReactNode}
+                </p>
               )}
             </div>
             <div className="space-y-2">
@@ -242,9 +266,11 @@ export function SARSPersonalIncomeTaxReturnsForm({
                 id="otherSupportingDocuments"
                 type="file"
                 multiple
-                {...register("otherSupportingDocuments")}
+                {...register('otherSupportingDocuments')}
               />
-              <p className="text-sm text-gray-500">Any other supporting documentation to be declared</p>
+              <p className="text-sm text-gray-500">
+                Any other supporting documentation to be declared
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -254,20 +280,17 @@ export function SARSPersonalIncomeTaxReturnsForm({
             name="agreeToContact"
             control={control}
             render={({ field }) => (
-              <Switch
-                id="agreeToContact"
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
+              <Switch id="agreeToContact" checked={field.value} onCheckedChange={field.onChange} />
             )}
           />
           <Label htmlFor="agreeToContact">
-            I agree to be contacted if there are ways to maximize my return or improve tax efficiency
+            I agree to be contacted if there are ways to maximize my return or improve tax
+            efficiency
           </Label>
         </div>
 
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "Submitting..." : "Submit Personal Income Tax Return"}
+          {isSubmitting ? 'Submitting...' : 'Submit Personal Income Tax Return'}
         </Button>
       </form>
     </FormWrapper>

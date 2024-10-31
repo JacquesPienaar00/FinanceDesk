@@ -92,7 +92,7 @@ export default function SideCart({ visible, onRequestClose }: SideCartProps) {
                   <div className="flex-1">
                     <h3 className="font-semibold">{cartItem.product?.title || 'Default Title'}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {cartItem.count} x{' '}
+                      {cartItem.count} x R{' '}
                       {cartItem.product?.salePrice > 0
                         ? (cartItem.count * cartItem.product?.salePrice).toFixed(2)
                         : (cartItem.count * cartItem.product?.mrp).toFixed(2)}

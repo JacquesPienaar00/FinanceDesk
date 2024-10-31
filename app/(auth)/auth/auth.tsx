@@ -4,7 +4,7 @@ import { useForm, FieldValues, SubmitHandler, set } from 'react-hook-form';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { motion, useAnimation, useAnimationControls } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
-
+import { useToast } from '@/hooks/use-toast';
 import SocialLogin from './components/SocialLogin';
 import Divider from './components/Divider';
 import Input from '@/components/ui/inputAuth';
@@ -28,6 +28,7 @@ interface IShowMessage {
 type Variant = VARIANTS.login | VARIANTS.register | VARIANTS.reset;
 
 const Auth = () => {
+  const { toast } = useToast();
   const [variant, setVariant] = useState<Variant>(VARIANTS.login);
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showMessage, setShowMessage] = useState<IShowMessage | null>(null);
@@ -107,6 +108,17 @@ const Auth = () => {
     }
     if (isLogin) {
       await signin(data);
+    }
+    if (isLogin) {
+      try {
+        await signin(data);
+        toast({
+          title: 'Welcome back!',
+          description: 'You have successfully logged in.',
+        });
+      } catch (error: any) {
+        setShowMessage({ type: 'error', message: error?.message || 'Error' });
+      }
     }
     if (isReset) {
       try {

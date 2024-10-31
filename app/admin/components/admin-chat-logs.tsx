@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -13,49 +12,99 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Bot, Send, Ticket, Clock, X } from 'lucide-react';
+import { User, Bot, Send, Ticket, Clock, X, RefreshCw } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { io, Socket } from 'socket.io-client';
 
 interface Message {
+  id: string;
   text: string;
   sender: 'user' | 'bot' | 'human';
-  timestamp: string;
+  createdAt: string;
+  ticketId: string;
 }
 
 interface Ticket {
+  id: string;
   number: string;
-  status: string;
+  status: 'Open' | 'InProgress' | 'Closed';
   createdAt: string;
+  updatedAt: string;
   messages: Message[];
+  subject: string;
 }
 
 interface ChatLog {
-  userId: string;
-  userName: string;
+  id: string;
+  name: string | null;
   tickets: Ticket[];
 }
 
-function formatTicketNumber(number: string) {
-  const shortNumber = number.slice(-6);
-  return shortNumber.toUpperCase();
-}
-
 export default function AdminChatLogs() {
-  const { data: session } = useSession();
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [chatLogs, setChatLogs] = useState<ChatLog[]>([]);
   const [selectedChatLog, setSelectedChatLog] = useState<ChatLog | null>(null);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [replyText, setReplyText] = useState('');
   const [filter, setFilter] = useState('all');
   const [error, setError] = useState<string | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const initSocket = async () => {
+      try {
+        await fetch('/api/socket');
+        const newSocket = io({
+          path: '/api/socket',
+          addTrailingSlash: false,
+        });
+
+        newSocket.on('connect', () => {
+          console.log('Admin connected to Socket.IO server');
+        });
+
+        newSocket.on('connect_error', (error) => {
+          console.error('Socket connection error:', error);
+          setError('Failed to connect to real-time server');
+        });
+
+        newSocket.on('receive-message', (message: Message) => {
+          updateMessageInState(message);
+        });
+
+        newSocket.on('ticket-updated', (updatedTicket: Ticket) => {
+          updateTicketInState(updatedTicket);
+        });
+
+        setSocket(newSocket);
+      } catch (error) {
+        console.error('Failed to initialize socket:', error);
+        setError('Failed to connect to real-time server');
+      }
+    };
+
+    initSocket();
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     fetchChatLogs();
   }, []);
 
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
+  }, [selectedTicket?.messages]);
+
   const fetchChatLogs = async () => {
     try {
-      const response = await fetch('/api/chatbot/admin/chatlogs');
+      const response = await fetch('/api/admin/chatlogs');
       if (response.ok) {
         const data = await response.json();
         setChatLogs(data.chatLogs);
@@ -77,6 +126,9 @@ export default function AdminChatLogs() {
   const handleSelectTicket = (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setError(null);
+    if (socket) {
+      socket.emit('join-room', ticket.id);
+    }
   };
 
   const handleReply = async () => {
@@ -85,69 +137,77 @@ export default function AdminChatLogs() {
       return;
     }
 
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      text: replyText,
+      sender: 'human',
+      createdAt: new Date().toISOString(),
+      ticketId: selectedTicket.id,
+    };
+
+    // Optimistically update the UI
+    updateMessageInState(newMessage);
+    setReplyText('');
+
     try {
-      const response = await fetch('/api/chatbot/admin/reply', {
+      const response = await fetch('/api/admin/reply', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: selectedChatLog.userId,
-          ticketNumber: selectedTicket.number,
-          text: replyText,
+          userId: selectedChatLog.id,
+          ticketId: selectedTicket.id,
+          text: newMessage.text,
           sender: 'human',
         }),
       });
 
       if (response.ok) {
-        const updatedChatLog = await response.json();
-        setChatLogs((prevLogs) =>
-          prevLogs.map((log) => (log.userId === updatedChatLog.userId ? updatedChatLog : log)),
-        );
-        setSelectedChatLog(updatedChatLog);
-        setSelectedTicket(
-          updatedChatLog.tickets.find((t: Ticket) => t.number === selectedTicket.number) || null,
-        );
-        setReplyText('');
+        const updatedTicket = await response.json();
+        updateTicketInState(updatedTicket);
         setError(null);
+        if (socket) {
+          socket.emit('send-message', { roomId: selectedTicket.id, message: newMessage });
+        }
       } else {
         setError('Failed to send reply');
+        // Remove the optimistically added message on error
+        removeMessageFromState(newMessage);
       }
     } catch (error) {
       setError('Error sending reply');
       console.error('Error sending reply:', error);
+      // Remove the optimistically added message on error
+      removeMessageFromState(newMessage);
     }
   };
 
-  const handleUpdateTicketStatus = async (status: string) => {
+  const handleUpdateTicketStatus = async (status: 'Open' | 'InProgress' | 'Closed') => {
     if (!selectedChatLog || !selectedTicket) {
       setError('Please select a chat log and ticket');
       return;
     }
 
     try {
-      const response = await fetch('/api/chatbot/admin/update-ticket-status', {
+      const response = await fetch('/api/admin/update-ticket-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          userId: selectedChatLog.userId,
-          ticketNumber: selectedTicket.number,
+          ticketId: selectedTicket.id,
           status: status,
         }),
       });
 
       if (response.ok) {
-        const { chatLog } = await response.json();
-        setChatLogs((prevLogs) =>
-          prevLogs.map((log) => (log.userId === chatLog.userId ? chatLog : log)),
-        );
-        setSelectedChatLog(chatLog);
-        setSelectedTicket(
-          chatLog.tickets.find((t: Ticket) => t.number === selectedTicket.number) || null,
-        );
+        const updatedTicket = await response.json();
+        updateTicketInState(updatedTicket);
         setError(null);
+        if (socket) {
+          socket.emit('update-ticket', { roomId: selectedTicket.id, ticket: updatedTicket });
+        }
       } else {
         const errorData = await response.json();
         setError(`Failed to update ticket status: ${errorData.error}`);
@@ -158,9 +218,96 @@ export default function AdminChatLogs() {
     }
   };
 
+  const updateTicketInState = (updatedTicket: Ticket) => {
+    setChatLogs((prevLogs) =>
+      prevLogs.map((log) => ({
+        ...log,
+        tickets: log.tickets.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)),
+      })),
+    );
+    setSelectedChatLog((prev) => {
+      if (prev) {
+        return {
+          ...prev,
+          tickets: prev.tickets.map((t) => (t.id === updatedTicket.id ? updatedTicket : t)),
+        };
+      }
+      return prev;
+    });
+    if (selectedTicket && selectedTicket.id === updatedTicket.id) {
+      setSelectedTicket(updatedTicket);
+    }
+  };
+
+  const updateMessageInState = (newMessage: Message) => {
+    setChatLogs((prevLogs) =>
+      prevLogs.map((log) => ({
+        ...log,
+        tickets: log.tickets.map((t) =>
+          t.id === newMessage.ticketId ? { ...t, messages: [...t.messages, newMessage] } : t,
+        ),
+      })),
+    );
+    setSelectedChatLog((prev) => {
+      if (prev) {
+        return {
+          ...prev,
+          tickets: prev.tickets.map((t) =>
+            t.id === newMessage.ticketId ? { ...t, messages: [...t.messages, newMessage] } : t,
+          ),
+        };
+      }
+      return prev;
+    });
+    setSelectedTicket((prev) => {
+      if (prev && prev.id === newMessage.ticketId) {
+        return {
+          ...prev,
+          messages: [...prev.messages, newMessage],
+        };
+      }
+      return prev;
+    });
+  };
+
+  const removeMessageFromState = (messageToRemove: Message) => {
+    setChatLogs((prevLogs) =>
+      prevLogs.map((log) => ({
+        ...log,
+        tickets: log.tickets.map((t) =>
+          t.id === messageToRemove.ticketId
+            ? { ...t, messages: t.messages.filter((m) => m.id !== messageToRemove.id) }
+            : t,
+        ),
+      })),
+    );
+    setSelectedChatLog((prev) => {
+      if (prev) {
+        return {
+          ...prev,
+          tickets: prev.tickets.map((t) =>
+            t.id === messageToRemove.ticketId
+              ? { ...t, messages: t.messages.filter((m) => m.id !== messageToRemove.id) }
+              : t,
+          ),
+        };
+      }
+      return prev;
+    });
+    setSelectedTicket((prev) => {
+      if (prev && prev.id === messageToRemove.ticketId) {
+        return {
+          ...prev,
+          messages: prev.messages.filter((m) => m.id !== messageToRemove.id),
+        };
+      }
+      return prev;
+    });
+  };
+
   const filteredChatLogs = chatLogs.filter((log) => {
     if (filter === 'all') return true;
-    return log.tickets.some((ticket) => ticket.status.toLowerCase() === filter);
+    return log.tickets.some((ticket) => ticket.status.toLowerCase() === filter.toLowerCase());
   });
 
   return (
@@ -174,11 +321,15 @@ export default function AdminChatLogs() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
-            <SelectItem value="open">Open</SelectItem>
-            <SelectItem value="in progress">In Progress</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
+            <SelectItem value="Open">Open</SelectItem>
+            <SelectItem value="InProgress">In Progress</SelectItem>
+            <SelectItem value="Closed">Closed</SelectItem>
           </SelectContent>
         </Select>
+        <Button onClick={fetchChatLogs} variant="outline">
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
       </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card>
@@ -189,12 +340,12 @@ export default function AdminChatLogs() {
             <ScrollArea className="h-[600px]">
               {filteredChatLogs.map((chatLog) => (
                 <div
-                  key={chatLog.userId}
+                  key={chatLog.id}
                   className="cursor-pointer p-2 hover:bg-gray-100"
                   onClick={() => handleSelectChatLog(chatLog)}
                 >
-                  <p className="font-semibold">{chatLog.userName}</p>
-                  <p className="text-sm text-gray-500">User ID: {chatLog.userId}</p>
+                  <p className="font-semibold">{chatLog.name || 'Anonymous'}</p>
+                  <p className="text-sm text-gray-500">User ID: {chatLog.id}</p>
                   <p className="text-sm text-gray-500">Tickets: {chatLog.tickets.length}</p>
                 </div>
               ))}
@@ -209,17 +360,20 @@ export default function AdminChatLogs() {
             <ScrollArea className="h-[600px]">
               {selectedChatLog?.tickets.map((ticket) => (
                 <div
-                  key={ticket.number}
+                  key={ticket.id}
                   className="cursor-pointer p-2 hover:bg-gray-100"
                   onClick={() => handleSelectTicket(ticket)}
                 >
                   <div className="flex items-center space-x-2">
                     <Ticket className="h-4 w-4 text-primary" />
-                    <p className="font-semibold">#{formatTicketNumber(ticket.number)}</p>
+                    <p className="font-semibold">#{ticket.number}</p>
                   </div>
                   <p className="text-sm text-gray-500">Status: {ticket.status}</p>
                   <p className="text-sm text-gray-500">
                     Created: {new Date(ticket.createdAt).toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Updated: {new Date(ticket.updatedAt).toLocaleString()}
                   </p>
                 </div>
               )) || <p>Select a chat log to view tickets</p>}
@@ -237,7 +391,7 @@ export default function AdminChatLogs() {
                   <div className="flex items-center space-x-2">
                     <Ticket className="h-5 w-5 text-primary" />
                     <p className="font-semibold">
-                      #{formatTicketNumber(selectedTicket.number)} - {selectedTicket.status}
+                      #{selectedTicket.number} - {selectedTicket.status}
                     </p>
                   </div>
                   <div className="flex space-x-2">
@@ -245,14 +399,32 @@ export default function AdminChatLogs() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
-                            onClick={() => handleUpdateTicketStatus('In Progress')}
-                            disabled={selectedTicket.status === 'In Progress'}
+                            onClick={() => handleUpdateTicketStatus('Open')}
+                            disabled={selectedTicket.status === 'Open'}
+                            size="icon"
+                            variant="outline"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Reopen Ticket</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => handleUpdateTicketStatus('InProgress')}
+                            disabled={selectedTicket.status === 'InProgress'}
                             size="icon"
                             variant="outline"
                           >
                             <Clock className="h-4 w-4" />
                           </Button>
                         </TooltipTrigger>
+
                         <TooltipContent>
                           <p>Set In Progress</p>
                         </TooltipContent>
@@ -277,9 +449,9 @@ export default function AdminChatLogs() {
                     </TooltipProvider>
                   </div>
                 </div>
-                <ScrollArea className="mb-4 h-[450px]">
-                  {selectedTicket.messages.map((message, index) => (
-                    <div key={index} className="mb-2">
+                <ScrollArea className="mb-4 h-[450px]" ref={scrollAreaRef}>
+                  {selectedTicket.messages.map((message) => (
+                    <div key={message.id} className="mb-2">
                       <div className="flex items-center space-x-2">
                         {message.sender === 'user' ? (
                           <User className="h-4 w-4" />
@@ -289,7 +461,7 @@ export default function AdminChatLogs() {
                           <User className="h-4 w-4 text-green-500" />
                         )}
                         <span className="text-sm text-gray-500">
-                          {new Date(message.timestamp).toLocaleString()}
+                          {new Date(message.createdAt).toLocaleString()}
                         </span>
                       </div>
                       <p className="ml-6">{message.text}</p>
@@ -301,6 +473,12 @@ export default function AdminChatLogs() {
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Type your reply..."
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleReply();
+                      }
+                    }}
                   />
                   <Button onClick={handleReply}>
                     <Send className="mr-2 h-4 w-4" />

@@ -8,15 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera } from 'lucide-react';
@@ -57,7 +50,7 @@ export default function UserProfile() {
     }
 
     try {
-      const response = await fetch('/api/user/update', {
+      const response = await fetch('/api/dashboard/user/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, currentPassword, newPassword, avatarUrl }),
@@ -97,7 +90,7 @@ export default function UserProfile() {
     formData.append('file', file);
 
     try {
-      const response = await fetch('/api/user/profile-image', {
+      const response = await fetch('/api/dashboard/user/profile-image', {
         method: 'POST',
         body: formData,
       });

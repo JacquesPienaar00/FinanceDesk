@@ -2,8 +2,9 @@ import type { Metadata } from 'next';
 
 import { Nunito } from 'next/font/google';
 import { AuthContext } from '@/context/AutxContext';
-import { ThemeProvider } from '@/components/theme-provider';
+import { ThemeProvider } from '@/components/ui/theme-provider';
 import Providers from '@/components/eCommerce/Providers';
+import { Toaster } from '@/components/ui/toaster';
 
 import './globals.css';
 import { CONFIG } from './config';
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <AuthContext>{children}</AuthContext>
           </Providers>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   );

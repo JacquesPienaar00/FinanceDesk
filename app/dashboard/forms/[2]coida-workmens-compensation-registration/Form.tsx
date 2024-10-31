@@ -1,143 +1,50 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
-import { FormWrapper } from "@/app/dashboard/forms/components/FormWrapper";
-import { Stepper, Step } from "@/components/ui/stepper";
-import { useFormSubmission } from "@/app/dashboard/hooks/useFormSubmmisions";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { FormWrapper } from '@/app/dashboard/forms/components/FormWrapper';
+import { Stepper, Step } from '@/components/ui/stepper';
+import { useMultiStepForm } from '@/app/dashboard/forms/hooks/useMultiStepForm';
 
 const formSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  contactNumber: z.string().min(10, "Contact number must be at least 10 digits"),
-  priorAnnualReturn: z.string().min(1, "This field is required"),
-  annualTurnover: z.string().min(1, "This field is required"),
-  fileMoreReturns: z.string().min(1, "This field is required"),
+  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  contactNumber: z.string().min(10, 'Contact number must be at least 10 digits'),
+  priorAnnualReturn: z.string().min(1, 'This field is required'),
+  annualTurnover: z.string().min(1, 'This field is required'),
+  fileMoreReturns: z.string().min(1, 'This field is required'),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-export function SimpleRegistrationForm({
+export default function SimpleRegistrationForm({
   onSubmissionSuccess,
-  collectionName = "coida-workmens-compensation-registration",
-  pfDataItemToRemove = "2",
+  collectionName = 'coida-workmens-compensation-registration',
+  pfDataItemToRemove = '2',
 }: {
   onSubmissionSuccess: () => void;
   collectionName?: string;
   pfDataItemToRemove?: string;
 }) {
-  const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState(0);
-  const { data: session } = useSession();
-  const router = useRouter();
-
-  const { submitForm, isSubmitting } = useFormSubmission("2", async () => {
-    await removeItemFromPfData();
-    onSubmissionSuccess();
-  });
-
-  const removeItemFromPfData = async () => {
-    if (!session?.user?.id) {
-      console.error("User ID not available");
-      return;
-    }
-
-    try {
-      const response = await fetch("/api/remove-pf-item", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          userId: session.user.id, 
-          itemName: pfDataItemToRemove,
-          removeOnlyOne: true 
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to remove item from pfData");
-      }
-
-      console.log("Item removed from pfData:", result.removedItem);
-    } catch (error) {
-      console.error("Error removing item from pfData:", error);
-      toast({
-        title: "Warning",
-        description: "Form submitted successfully, but there was an issue updating your profile. Please refresh the page.",
-        variant: "destructive",
-      });
-    }
-  };
-
   const {
-    register,
+    currentStep,
+    form: {
+      register,
+      formState: { errors },
+    },
+    isSubmitting,
     handleSubmit,
-    formState: { errors },
-    trigger,
-  } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    handleNextStep,
+    handlePrevStep,
+  } = useMultiStepForm<FormData>({
+    formId: '2',
+    collectionName,
+    schema: formSchema,
+    onSubmissionSuccess,
+    pfDataItemToRemove,
+    steps: ['personalInfo', 'businessInfo'],
   });
-
-  const onSubmit: SubmitHandler<FormData> = async (data) => {
-    try {
-      if (!session) {
-        toast({
-          title: "Authentication required",
-          description: "Please sign in to submit the form.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const formData = new FormData();
-      Object.entries(data).forEach(([key, value]) => {
-        formData.append(key, value);
-      });
-      formData.append("formId", "2");
-      formData.append("collectionName", collectionName);
-      
-      // Attach the NextAuth email
-      if (session.user?.email) {
-        formData.append("nextauth", session.user.email);
-      }
-
-      const success = await submitForm(formData);
-
-      if (success) {
-        router.refresh();
-      }
-    } catch (error) {
-      console.error("Error submitting form:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "There was a problem submitting your form. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleNextStep = async () => {
-    const fieldsToValidate = currentStep === 0
-      ? ["fullName", "email", "contactNumber"]
-      : ["priorAnnualReturn", "annualTurnover", "fileMoreReturns"];
-
-    const isStepValid = await trigger(fieldsToValidate as any);
-    if (isStepValid) {
-      setCurrentStep((prev) => Math.min(prev + 1, 1));
-    }
-  };
-
-  const handlePrevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 0));
-  };
 
   return (
     <FormWrapper
@@ -149,33 +56,31 @@ export function SimpleRegistrationForm({
         <Step label="Business Information" />
       </Stepper>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-8">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         {currentStep === 0 && (
           <>
             <Input
-              {...register("fullName")}
+              {...register('fullName')}
               placeholder="Full Name"
-              className={errors.fullName ? "border-red-500" : ""}
+              className={errors.fullName ? 'border-red-500' : ''}
             />
             {errors.fullName && (
-              <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>
+              <p className="mt-1 text-sm text-red-500">{errors.fullName.message}</p>
             )}
             <Input
-              {...register("email")}
+              {...register('email')}
               type="email"
               placeholder="Email"
-              className={errors.email ? "border-red-500" : ""}
+              className={errors.email ? 'border-red-500' : ''}
             />
-            {errors.email && (
-              <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-            )}
+            {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>}
             <Input
-              {...register("contactNumber")}
+              {...register('contactNumber')}
               placeholder="Contact Number"
-              className={errors.contactNumber ? "border-red-500" : ""}
+              className={errors.contactNumber ? 'border-red-500' : ''}
             />
             {errors.contactNumber && (
-              <p className="text-red-500 text-sm mt-1">{errors.contactNumber.message}</p>
+              <p className="mt-1 text-sm text-red-500">{errors.contactNumber.message}</p>
             )}
           </>
         )}
@@ -183,33 +88,33 @@ export function SimpleRegistrationForm({
         {currentStep === 1 && (
           <>
             <Input
-              {...register("priorAnnualReturn")}
+              {...register('priorAnnualReturn')}
               placeholder="Prior Annual Return"
-              className={errors.priorAnnualReturn ? "border-red-500" : ""}
+              className={errors.priorAnnualReturn ? 'border-red-500' : ''}
             />
             {errors.priorAnnualReturn && (
-              <p className="text-red-500 text-sm mt-1">{errors.priorAnnualReturn.message}</p>
+              <p className="mt-1 text-sm text-red-500">{errors.priorAnnualReturn.message}</p>
             )}
             <Input
-              {...register("annualTurnover")}
+              {...register('annualTurnover')}
               placeholder="Annual Turnover"
-              className={errors.annualTurnover ? "border-red-500" : ""}
+              className={errors.annualTurnover ? 'border-red-500' : ''}
             />
             {errors.annualTurnover && (
-              <p className="text-red-500 text-sm mt-1">{errors.annualTurnover.message}</p>
+              <p className="mt-1 text-sm text-red-500">{errors.annualTurnover.message}</p>
             )}
             <Input
-              {...register("fileMoreReturns")}
+              {...register('fileMoreReturns')}
               placeholder="File More Returns"
-              className={errors.fileMoreReturns ? "border-red-500" : ""}
+              className={errors.fileMoreReturns ? 'border-red-500' : ''}
             />
             {errors.fileMoreReturns && (
-              <p className="text-red-500 text-sm mt-1">{errors.fileMoreReturns.message}</p>
+              <p className="mt-1 text-sm text-red-500">{errors.fileMoreReturns.message}</p>
             )}
           </>
         )}
 
-        <div className="flex justify-between mt-6">
+        <div className="mt-6 flex justify-between">
           {currentStep > 0 && (
             <Button type="button" onClick={handlePrevStep}>
               Previous
@@ -222,7 +127,7 @@ export function SimpleRegistrationForm({
           )}
           {currentStep === 1 && (
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Submit"}
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
           )}
         </div>
@@ -230,5 +135,3 @@ export function SimpleRegistrationForm({
     </FormWrapper>
   );
 }
-
-export default SimpleRegistrationForm;

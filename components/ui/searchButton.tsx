@@ -1,8 +1,16 @@
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem, CommandSeparator } from "@/components/ui/command";
-import { JSX, SVGProps } from "react";
-import Link from "next/link"; 
+import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandSeparator,
+} from '@/components/ui/command';
+import { JSX, SVGProps } from 'react';
+import Link from 'next/link';
 
 export default function Component() {
   return (
@@ -18,23 +26,23 @@ export default function Component() {
           <CommandList>
             <CommandEmpty>No services found.</CommandEmpty>
             <CommandItem>
-              <Link href="/services">
-                <a className="text-primary">Business Startup package</a>
+              <Link href="/services" className="text-primary">
+                Business Startup package
               </Link>
             </CommandItem>
             <CommandItem>
-              <Link href="/services">
-                <a className="text-primary">Comprehensive Business package</a>
+              <Link href="/services" className="text-primary">
+                Comprehensive Business package
               </Link>
             </CommandItem>
             <CommandItem>
-              <Link href="/services">
-                <a className="text-primary">Non-profit Organization package</a>
+              <Link href="/services" className="text-primary">
+                Non-profit Organization package
               </Link>
             </CommandItem>
             <CommandItem>
-              <Link href="/services">
-                <a className="text-primary">Tax Compliance and Maintenance package</a>
+              <Link href="/services" className="text-primary">
+                Tax Compliance and Maintenance package
               </Link>
             </CommandItem>
             <CommandSeparator />

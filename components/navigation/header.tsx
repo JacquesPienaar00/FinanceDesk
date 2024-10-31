@@ -33,7 +33,7 @@ import imagesBusiness from '@/public/icons/businessAdministation';
 import imagesFinancial from '@/public/icons/financialAdvisory';
 import imagesTax from '@/public/icons/taxAdministration';
 import imagesPackages from '@/public/icons/servicesPackages';
-import { ModeToggle } from '../ModeToggle';
+import { ModeToggle } from '../ui/ModeToggle';
 
 const Logo = ({ className, ...props }: { className: string }) => (
   <svg

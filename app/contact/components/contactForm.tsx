@@ -14,9 +14,75 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ContactForm() {
   const [agreed, setAgreed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!agreed) {
+      toast({
+        title: 'Agreement Required',
+        description: 'Please agree to the privacy policy before submitting.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const data = {
+      firstName: formData.get('first-name'),
+      lastName: formData.get('last-name'),
+      company: formData.get('company'),
+      email: formData.get('email'),
+      phone: formData.get('phone-number'),
+      country: formData.get('country'),
+      message: formData.get('message'),
+    };
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit the form');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: 'Success!',
+          description: "Your message has been sent. We'll get back to you soon.",
+        });
+        form.reset();
+        setAgreed(false);
+      } else {
+        throw new Error(result.error || 'An unexpected error occurred');
+      }
+    } catch (error) {
+      console.error('Form submission error:', error);
+      toast({
+        title: 'Error',
+        description:
+          error instanceof Error ? error.message : 'Failed to submit the form. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="isolate mt-4 px-6 py-24 sm:py-32 lg:px-8">
@@ -38,16 +104,13 @@ export default function ContactForm() {
             Get in touch today!
           </CardTitle>
           <CardDescription className="mt-2 space-y-4 text-center text-lg leading-8">
-            <p>We’d love to hear from you!</p>
-            <p>
-              {' '}
-              Whether you have questions, feedback, or need support, feel free to reach out to us.
-              Our team is here to assist you and ensure you have a seamless experience.
-            </p>
+            We&apos;d love to hear from you! Whether you have questions, feedback, or need support,
+            feel free to reach out to us. Our team is here to assist you and ensure you have a
+            seamless experience.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action="#" method="POST" className="mt-8 space-y-6">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
             <div className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2">
               <div>
                 <Label htmlFor="first-name">First name</Label>
@@ -57,6 +120,7 @@ export default function ContactForm() {
                   type="text"
                   autoComplete="given-name"
                   className="mt-2.5"
+                  required
                 />
               </div>
               <div>
@@ -67,6 +131,7 @@ export default function ContactForm() {
                   type="text"
                   autoComplete="family-name"
                   className="mt-2.5"
+                  required
                 />
               </div>
               <div className="sm:col-span-2">
@@ -87,6 +152,7 @@ export default function ContactForm() {
                   type="email"
                   autoComplete="email"
                   className="mt-2.5"
+                  required
                 />
               </div>
               <div className="sm:col-span-2">
@@ -96,7 +162,7 @@ export default function ContactForm() {
                     <Label htmlFor="country" className="sr-only">
                       Country
                     </Label>
-                    <Select defaultValue="RSA">
+                    <Select defaultValue="RSA" name="country">
                       <SelectTrigger className="w-[80px] border-0 bg-transparent focus:ring-0">
                         <SelectValue placeholder="Country" />
                       </SelectTrigger>
@@ -113,6 +179,7 @@ export default function ContactForm() {
                     type="tel"
                     autoComplete="tel"
                     className="pl-24"
+                    required
                   />
                 </div>
               </div>
@@ -124,6 +191,7 @@ export default function ContactForm() {
                   rows={4}
                   className="mt-2.5"
                   placeholder="Your message here..."
+                  required
                 />
               </div>
               <div className="flex items-center space-x-2 sm:col-span-2">
@@ -138,8 +206,8 @@ export default function ContactForm() {
               </div>
             </div>
             <div className="mt-10">
-              <Button type="submit" className="w-full">
-                Let&apos;s talk
+              <Button type="submit" className="w-full" disabled={isSubmitting || !agreed}>
+                {isSubmitting ? 'Submitting...' : "Let's talk"}
               </Button>
             </div>
           </form>

@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Link } from 'lucide-react';
 
 export default function HowItWorksSection() {
   return (
@@ -24,9 +25,6 @@ export default function HowItWorksSection() {
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque facilisis eros a
             libero venenatis, sed vehicula ipsum ullamcorper.
           </p>
-          <Button size="lg" className="rounded-full">
-            Get Started
-          </Button>
         </div>
       </div>
     </section>
