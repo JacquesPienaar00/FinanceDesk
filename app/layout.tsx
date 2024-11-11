@@ -8,7 +8,8 @@ import { Toaster } from '@/components/ui/toaster';
 
 import './globals.css';
 import { CONFIG } from './config';
-
+import LanguageSwitcher from '@/components/ui/language-switcher';
+import BackToTopButton from '@/components/ui/back-to-top';
 const nunito = Nunito({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -29,8 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Providers>
             <AuthContext>{children}</AuthContext>
           </Providers>
+          <LanguageSwitcher />
+          <Toaster />
+          <BackToTopButton threshold={200} position="bottom-left" className="" />
         </ThemeProvider>
-        <Toaster />
       </body>
     </html>
   );

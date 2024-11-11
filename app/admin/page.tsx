@@ -48,6 +48,7 @@ import { FormSubmissionsView } from './components/FormSubmissions';
 import AdminChatLogs from './components/admin-chat-logs';
 import Usermanagement from './components/user-management';
 import AdminBotResponses from './components/bot-responses';
+import ServiceIconsEditor from './components/serviceEditor';
 
 const useAdminRoute = (redirectTo = '/auth') => {
   const { data: session, status } = useSession();
@@ -97,6 +98,16 @@ const navItems = [
     ),
   },
   { name: 'File Management', icon: FileText, content: <div></div> },
+  {
+    name: 'Management',
+    icon: FileText,
+    content: (
+      <div>
+        {' '}
+        <ServiceIconsEditor />,
+      </div>
+    ),
+  },
 ];
 
 const Sidebar = ({

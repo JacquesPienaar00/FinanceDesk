@@ -48,27 +48,21 @@ export async function GET(req: NextRequest) {
 
       socket.on('join-room', (roomId: string) => {
         socket.join(roomId);
-      
       });
 
       socket.on('leave-room', (roomId: string) => {
         socket.leave(roomId);
-    
       });
 
       socket.on('send-message', (data: { roomId: string; message: any }) => {
-     
         io.to(data.roomId).emit('receive-message', data.message);
       });
 
       socket.on('update-ticket', (data: { roomId: string; ticket: any }) => {
-     
         io.to(data.roomId).emit('ticket-updated', data.ticket);
       });
 
-      socket.on('disconnect', () => {
-      
-      });
+      socket.on('disconnect', () => {});
     });
 
     global.socket.io = io;

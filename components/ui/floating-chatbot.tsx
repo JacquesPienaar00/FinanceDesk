@@ -17,6 +17,7 @@ import { MessageCircle, X, User, Bot, Ticket, Send, CheckCircle } from 'lucide-r
 import { useSession } from 'next-auth/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io, Socket } from 'socket.io-client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Message {
   id: string;
@@ -359,176 +360,196 @@ export default function FloatingChatbot() {
 
   return (
     <>
-      {isOpen && (
-        <Card className="fixed bottom-20 right-4 flex h-[70vh] w-96 scale-100 transform flex-col overflow-hidden rounded-lg border bg-background opacity-100 shadow-lg transition-all duration-300 ease-in-out">
-          <CardHeader className="flex flex-row items-center justify-between p-4">
-            <CardTitle className="text-lg">Support</CardTitle>
-            {selectedTicket && (
-              <div className="flex items-center space-x-2">
-                <Ticket className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold">
-                  #{formatTicketNumber(selectedTicket.number)}
-                </span>
-                <span
-                  className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(
-                    selectedTicket.status,
-                  )}`}
-                >
-                  {selectedTicket.status}
-                </span>
-              </div>
-            )}
-            <Button variant="ghost" size="icon" onClick={toggleChatbot}>
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
-          </CardHeader>
-          <AnimatePresence>
-            {showClosedMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.1 }}
-                className="absolute left-1/2 top-14 z-10 -translate-x-1/2 transform rounded-full bg-green-500 px-4 py-2 text-sm font-medium text-white shadow-lg"
-              >
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-4 w-4" />
-                  <span>Last chat ticket closed</span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          <Tabs defaultValue="chat" className="flex flex-grow flex-col">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="chat">Chat</TabsTrigger>
-              <TabsTrigger value="tickets">Tickets</TabsTrigger>
-            </TabsList>
-            <TabsContent value="chat" className="flex flex-grow flex-col overflow-hidden">
-              <ScrollArea className="h-[45vh]" ref={scrollAreaRef}>
-                <div className="flex flex-col space-y-4 p-4">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${
-                        message.sender === 'user' ? 'justify-end' : 'justify-start'
-                      }`}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className="fixed bottom-20 right-4 z-40"
+          >
+            <Card className="flex h-[70vh] w-96 flex-col overflow-hidden rounded-xl border bg-background shadow-xl">
+              <CardHeader className="flex flex-row items-center justify-between p-4">
+                <CardTitle className="text-lg">Support</CardTitle>
+                {selectedTicket && (
+                  <div className="flex items-center space-x-2">
+                    <Ticket className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">
+                      #{formatTicketNumber(selectedTicket.number)}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusColor(
+                        selectedTicket.status,
+                      )}`}
                     >
-                      <div
-                        className={`flex max-w-[80%] items-start space-x-2 ${
-                          message.sender === 'user'
-                            ? 'flex-row-reverse space-x-reverse'
-                            : 'flex-row'
-                        }`}
-                      >
-                        {message.sender !== 'user' && (
-                          <div
-                            className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                              message.sender === 'bot' ? 'bg-blue-500' : 'bg-green-500'
+                      {selectedTicket.status}
+                    </span>
+                  </div>
+                )}
+              </CardHeader>
+              <AnimatePresence>
+                {showClosedMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute left-1/2 top-14 z-10 -translate-x-1/2 transform rounded-full bg-green-500 px-4 py-2 text-sm font-medium text-white shadow-lg"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-4 w-4" />
+                      <span>Last chat ticket closed</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <Tabs defaultValue="chat" className="flex flex-grow flex-col">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="chat">Chat</TabsTrigger>
+                  <TabsTrigger value="tickets">Tickets</TabsTrigger>
+                </TabsList>
+                <TabsContent
+                  value="chat"
+                  className="flex flex-grow flex-col justify-between overflow-hidden"
+                >
+                  <ScrollArea className="h-[50vh]" ref={scrollAreaRef}>
+                    <motion.div className="flex flex-col space-y-4 p-4">
+                      <AnimatePresence>
+                        {messages.map((message) => (
+                          <motion.div
+                            key={message.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className={`flex ${
+                              message.sender === 'user' ? 'justify-end' : 'justify-start'
                             }`}
                           >
-                            {message.sender === 'bot' ? (
-                              <Bot className="h-5 w-5 text-white" />
-                            ) : (
-                              <User className="h-5 w-5 text-white" />
-                            )}
-                          </div>
-                        )}
-                        <div
-                          className={`rounded-lg p-2 ${
-                            message.sender === 'user'
-                              ? 'bg-primary text-primary-foreground'
-                              : message.sender === 'human'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-blue-100 text-blue-800'
-                          }`}
-                        >
-                          {message.text}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
-              <CardContent className="border-t bg-background p-4">
-                <div className="mb-2 flex">
-                  <Input
-                    type="text"
-                    placeholder="Type a message..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSend();
-                      }
-                    }}
-                    className="mr-2 flex-grow"
-                  />
-                  <Button onClick={handleSend}>
-                    <Send className="h-4 w-4" />
-                    <span className="sr-only">Send</span>
-                  </Button>
-                </div>
-                {!isHumanRequested && (
-                  <Button onClick={requestHuman} variant="outline" className="mb-2 w-full">
-                    <User className="mr-2 h-4 w-4" />
-                    Request Human Agent
-                  </Button>
-                )}
-                {selectedTicket && selectedTicket.status === 'Closed' && (
-                  <Button onClick={startNewConversation} variant="outline" className="w-full">
-                    Start New Conversation
-                  </Button>
-                )}
-              </CardContent>
-            </TabsContent>
-            <TabsContent value="tickets" className="flex flex-col">
-              <CardContent className="border-b p-4">
-                <Select onValueChange={handleTicketSelect}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a ticket" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <ScrollArea className="h-[200px]">
-                      {tickets.map((ticket) => (
-                        <SelectItem key={ticket.id} value={ticket.id}>
-                          #{formatTicketNumber(ticket.number)} - {ticket.status}
-                        </SelectItem>
-                      ))}
-                    </ScrollArea>
-                  </SelectContent>
-                </Select>
-              </CardContent>
-
-              {selectedTicket && (
-                <CardContent className="border-t bg-background p-4">
-                  <CardDescription className="font-semibold">
-                    Selected Ticket: #{formatTicketNumber(selectedTicket.number)}
-                  </CardDescription>
-                  <ScrollArea className="h-[45vh]">
-                    <div className="space-y-2">
-                      {selectedTicket.messages.map((message) => (
-                        <div key={message.id} className="text-sm">
-                          <span className="font-semibold">{message.sender}: </span>
-                          {message.text}
-                        </div>
-                      ))}
-                    </div>
+                            <div
+                              className={`flex max-w-[70%] items-end space-x-2 ${
+                                message.sender === 'user'
+                                  ? 'flex-row-reverse space-x-reverse'
+                                  : 'flex-row'
+                              }`}
+                            >
+                              {message.sender !== 'user' && (
+                                <Avatar className="h-8 w-8">
+                                  {message.sender === 'bot' ? (
+                                    <Bot className="h-5 w-5 text-primary" />
+                                  ) : (
+                                    <User className="h-5 w-5 text-primary" />
+                                  )}
+                                  <AvatarFallback>
+                                    {message.sender === 'bot' ? 'B' : 'H'}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              <div
+                                className={`rounded-2xl px-4 py-2 ${
+                                  message.sender === 'user'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : message.sender === 'human'
+                                      ? 'bg-secondary text-secondary-foreground'
+                                      : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                {message.text}
+                              </div>
+                              {message.sender === 'user' && (
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src="/placeholder-avatar.jpg" alt="User" />
+                                  <AvatarFallback>U</AvatarFallback>
+                                </Avatar>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </motion.div>
                   </ScrollArea>
-                </CardContent>
-              )}
-            </TabsContent>
-          </Tabs>
-        </Card>
-      )}
+                  <CardContent className="border-t bg-background p-4">
+                    <div className="mb-2 flex">
+                      <Input
+                        type="text"
+                        placeholder="Type a message..."
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleSend();
+                          }
+                        }}
+                        className="mr-2 flex-grow"
+                      />
+                      <Button onClick={handleSend}>
+                        <Send className="h-4 w-4" />
+                        <span className="sr-only">Send</span>
+                      </Button>
+                    </div>
+                    {!isHumanRequested && (
+                      <Button onClick={requestHuman} variant="outline" className="mb-2 w-full">
+                        <User className="mr-2 h-4 w-4" />
+                        Request Human Agent
+                      </Button>
+                    )}
+                    {selectedTicket && selectedTicket.status === 'Closed' && (
+                      <Button onClick={startNewConversation} variant="outline" className="w-full">
+                        Start New Conversation
+                      </Button>
+                    )}
+                  </CardContent>
+                </TabsContent>
+                <TabsContent value="tickets" className="flex flex-col">
+                  <CardContent className="border-b p-4">
+                    <Select onValueChange={handleTicketSelect}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a ticket" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <ScrollArea className="h-[200px]">
+                          {tickets.map((ticket) => (
+                            <SelectItem key={ticket.id} value={ticket.id}>
+                              #{formatTicketNumber(ticket.number)} - {ticket.status}
+                            </SelectItem>
+                          ))}
+                        </ScrollArea>
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+
+                  {selectedTicket && (
+                    <CardContent className="border-t bg-background p-4">
+                      <CardDescription className="font-semibold">
+                        Selected Ticket: #{formatTicketNumber(selectedTicket.number)}
+                      </CardDescription>
+                      <ScrollArea className="h-[45vh]">
+                        <div className="space-y-2">
+                          {selectedTicket.messages.map((message) => (
+                            <div key={message.id} className="text-sm">
+                              <span className="font-semibold">{message.sender}: </span>
+                              {message.text}
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Button
-        className="fixed bottom-4 right-4 h-12 w-12 rounded-full shadow-lg"
+        className="fixed bottom-4 right-4 z-40 h-12 w-12 rounded-full shadow-lg"
         onClick={toggleChatbot}
       >
-        <MessageCircle className="h-6 w-6" />
-        <span className="sr-only">Open chat</span>
+        {isOpen ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
+        <span className="sr-only">{isOpen ? 'Close chat' : 'Open chat'}</span>
       </Button>
     </>
   );

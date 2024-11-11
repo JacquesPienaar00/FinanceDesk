@@ -44,7 +44,7 @@ export function ServiceCard({ product, onClick }: ServiceCardProps) {
       <CardContent className="flex flex-grow flex-col justify-between">
         <Button
           variant="ghost"
-          className="mt-4 w-full justify-between text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground"
+          className="mt-auto w-full justify-between text-primary transition-colors duration-300 group-hover:bg-primary group-hover:text-primary-foreground"
         >
           Fill out form
           <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />

@@ -261,7 +261,7 @@ function MobileNav({ session, status }: { session: any; status: string }) {
           </Link>
           <Accordion type="single" collapsible>
             <AccordionItem value="services">
-              <AccordionTrigger className="hover:textwhite rounded-md px-2 text-white hover:bg-accent dark:text-white">
+              <AccordionTrigger className="rounded-md px-2 hover:bg-accent">
                 Services
               </AccordionTrigger>
               <AccordionContent className="bg-secondary px-4">

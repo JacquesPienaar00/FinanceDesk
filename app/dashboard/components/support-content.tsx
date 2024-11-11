@@ -344,17 +344,17 @@ export function SupportContent() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <ScrollArea className="-mb-10 h-[65vh] pl-10 pr-10 pt-3" ref={scrollAreaRef}>
+                  <ScrollArea className="h-[65vh] pl-10 pr-10 pt-3" ref={scrollAreaRef}>
                     <div className="space-y-4">
                       {messages.map((message) => (
                         <div
                           key={message.id}
                           className={`flex ${
-                            message.sender === 'user' ? 'justify-end' : 'justify-start'
+                            message.sender === 'user' ? 'justify-start' : 'justify'
                           }`}
                         >
                           <div
-                            className={`flex max-w-[80%] items-start space-x-2 ${
+                            className={`flex max-w-[80%] items-end space-x-2 ${
                               message.sender === 'user'
                                 ? 'flex-row-reverse space-x-reverse'
                                 : 'flex-row'
